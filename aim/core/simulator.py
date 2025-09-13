@@ -1,40 +1,67 @@
 # core/simulator.py
 
-from typing import List, Dict, Set, Type
+from typing import List, Dict, Callable, Any, Set
 from collections import defaultdict
+import random
+
 from .agent import BaseAgent
 from .block import BaseBlock
+
 
 class Simulator:
     """
     Central simulation controller.
-    Manages ticks, agents, blocks, and event delivery.
-    Events are delivered next tick to agents that subscribe to exact event string.
+    Manages ticks, agents, blocks, agent-emitted events, and scheduled timed events.
     """
 
-    def __init__(self, max_ticks: int = 1000):
+    def __init__(self, max_ticks: int = 1000, random_seed: int = 42):
         self.max_ticks = max_ticks
         self.current_tick = 0
+        self.random_seed = random_seed
+        random.seed(self.random_seed)  # For event ordering
 
         self.blocks: List[BaseBlock] = []
-        self.agents: List[BaseAgent] = []  # Global registry (optional, for inspection)
+        self.agents: List[BaseAgent] = []
 
-        # Event system: map event string → set of agents subscribed to it
+        # --- Agent Event System ---
+        # Subscription: event string -> set of agents
         self._event_subscriptions: Dict[str, Set[BaseAgent]] = defaultdict(set)
-        self._pending_events: Dict[BaseAgent, List[str]] = defaultdict(list)  # agent → [events to deliver next tick]
-        self._events_this_tick: List[str] = []  # events emitted during current tick
+        # Pending delivery: agent -> list of events (to be delivered next tick)
+        self._pending_events: Dict[BaseAgent, List[str]] = defaultdict(list)
+        # Events emitted this tick (collected at end of tick)
+        self._events_this_tick: List[str] = []
+
+        # --- Scheduled Timed Events ---
+        # Format: { tick: [ (callback, is_recurring, interval) ] }
+        self._scheduled_events: Dict[int, List[Any]] = defaultdict(list)
+        # Flag to prevent event callbacks from scheduling new events during execution
+        self._event_scheduling_locked = False
 
     def add_block(self, block: BaseBlock) -> None:
         """Register a block to be included in simulation ticks."""
         self.blocks.append(block)
 
     def subscribe(self, agent: BaseAgent, event: str) -> None:
-        """
-        Subscribe agent to receive an event (exact match).
-        Called by agent or user during setup.
-        Example: agent subscribes to "order_complete"
-        """
+        """Subscribe agent to receive an event (exact match)."""
         self._event_subscriptions[event].add(agent)
+
+    def schedule_event(
+        self,
+        callback: Callable[[int], None],
+        delay_ticks: int = 0,
+        recurring: bool = False
+    ) -> None:
+        """
+        Schedule a callback to be executed at `current_tick + delay_ticks`.
+        Callback receives `current_tick` as argument.
+        If `recurring=True`, event will auto-reschedule itself every `delay_ticks`.
+        Events cannot schedule new events during execution (runtime error if attempted).
+        """
+        if self._event_scheduling_locked:
+            raise RuntimeError("Cannot schedule new events during event execution.")
+
+        target_tick = self.current_tick + delay_ticks
+        self._scheduled_events[target_tick].append((callback, recurring, delay_ticks))
 
     def run(self) -> None:
         """Run simulation until max_ticks reached or manually stopped."""
@@ -47,45 +74,65 @@ class Simulator:
     def tick(self) -> None:
         """
         Execute one simulation tick in this order:
-        1. Deliver pending events (from last tick) to agents.
-        2. Let each block perform its tick logic (e.g., Source spawns, Convey moves).
-        3. Collect all events emitted during this tick.
-        4. Stage them for delivery next tick (filtered by subscription).
+        1. Execute scheduled events for this tick (in randomized order).
+        2. Deliver pending agent-emitted events (from last tick).
+        3. Advance all blocks (call ._tick()).
+        4. Collect new agent-emitted events (for delivery next tick).
         """
-        # 1. Deliver events from last tick
+        self._process_scheduled_events()
         self._deliver_pending_events()
-
-        # 2. Advance all blocks
         for block in self.blocks:
             block._tick()
-
-        # 3. Collect events emitted during this tick (via agent.emit_event)
         self._collect_emitted_events()
+
+    def _process_scheduled_events(self) -> None:
+        """Execute all callbacks scheduled for current_tick in randomized order."""
+        events = self._scheduled_events.pop(self.current_tick, [])
+        if not events:
+            return
+
+        # Shuffle order for this tick (reproducible via seed)
+        shuffled_events = events[:]
+        random.shuffle(shuffled_events)
+
+        # Lock event scheduling during execution
+        self._event_scheduling_locked = True
+        reschedule_queue = []  # (callback, interval) tuples to reschedule AFTER unlock
+        try:
+            for callback, recurring, interval in shuffled_events:
+                callback(self.current_tick)
+                if recurring:
+                    # Queue for rescheduling — do NOT schedule while locked
+                    reschedule_queue.append((callback, interval))
+        finally:
+            self._event_scheduling_locked = False
+
+        # Now safely reschedule recurring events
+        for callback, interval in reschedule_queue:
+            self.schedule_event(callback, interval, recurring=True)
+
 
     def _deliver_pending_events(self) -> None:
         """Deliver staged events to agents and trigger on_event."""
         for agent, events in self._pending_events.items():
             for event in events:
                 agent._receive_event(event)
-            agent._process_pending_events()  # calls agent.on_event for each
+            agent._process_pending_events()
         self._pending_events.clear()
 
     def _collect_emitted_events(self) -> None:
         """Gather all events emitted this tick and stage for next tick delivery."""
         emitted_events = []
 
-        # Collect from all agents
         for agent in self.agents:
             emitted = agent._collect_emitted_events()
             emitted_events.extend(emitted)
 
-        # Also check agents inside blocks (in case new agents spawned and emitted)
         for block in self.blocks:
             for agent in block.agents:
                 emitted = agent._collect_emitted_events()
                 emitted_events.extend(emitted)
 
-        # Stage for next tick: map event → subscribed agents
         for event in emitted_events:
             for agent in self._event_subscriptions.get(event, set()):
                 self._pending_events[agent].append(event)
@@ -95,8 +142,5 @@ class Simulator:
         self.max_ticks = 0
 
     def add_agent(self, agent: BaseAgent) -> None:
-        """
-        Manually add an agent to simulation (e.g., pre-seeded agents).
-        Usually agents enter via SourceBlock, but this allows direct injection.
-        """
+        """Manually add an agent to simulation."""
         self.agents.append(agent)
