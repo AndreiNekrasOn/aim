@@ -16,7 +16,7 @@ class BaseBlock(ABC):
         self.output_connections: List[Optional['BaseBlock']] = []  # e.g., [next_block]
 
     @abstractmethod
-    def take(self, agent: 'BaseAgent') -> None:
+    def take(self, agent: 'BaseAgent') -> bool:
         """
         Accept an agent into this block.
         Must be overridden by subclasses.

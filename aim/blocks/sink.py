@@ -9,13 +9,14 @@ class SinkBlock(BaseBlock):
     Useful for counting, logging, or ending agent journeys.
     """
 
-    def take(self, agent: BaseAgent) -> None:
+    def take(self, agent: BaseAgent) -> bool:
         """
         Accept and hold agent forever (or until simulation ends).
         Agents are stored internally and not passed on.
         """
         agent._enter_block(self)
         self._agents.append(agent)
+        return True
 
     def _tick(self) -> None:
         """
