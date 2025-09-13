@@ -1,6 +1,6 @@
 # blocks/source.py
 
-from typing import Type, Optional, List
+from typing import Type, Optional, List, Callable
 from ..core.block import BaseBlock
 from ..core.agent import BaseAgent
 
@@ -10,37 +10,45 @@ class SourceBlock(BaseBlock):
     Connects to one output block (e.g., a conveyor or router).
     """
 
-    def __init__(self, agent_class: Type[BaseAgent] = BaseAgent, spawn_rate: int = 1):
+    def __init__(
+        self,
+        agent_class: Type[BaseAgent] = BaseAgent,
+        spawn_schedule: Callable[[int], int] = lambda tick: 1
+    ):
         """
         :param agent_class: Class to instantiate for each spawned agent.
-        :param spawn_rate: Number of agents to spawn per tick.
+        :param spawn_schedule: Function that takes current_tick and returns number of agents to spawn this tick.
+                               Default: spawns 1 agent per tick.
         """
         super().__init__()
         self.agent_class = agent_class
-        self.spawn_rate = spawn_rate
+        self.spawn_schedule = spawn_schedule
 
     def take(self, agent: BaseAgent) -> None:
-        """
-        SourceBlock doesn't accept incoming agents — it only spawns new ones.
-        You may choose to ignore or raise if called.
-        """
-        # Optional: warn or raise if someone tries to push agent into Source
-        # For now, silently ignore.
+        # SourceBlock doesn't accept incoming agents — ignore.
         pass
 
     def _tick(self) -> None:
-        """
-        Called by simulator each tick.
-        Spawns `spawn_rate` new agents and pushes them to the first connected block.
-        """
         if not self.output_connections:
-            return  # nowhere to send agents
+            return
 
         target_block = self.output_connections[0]
         if target_block is None:
             return
 
-        for _ in range(self.spawn_rate):
+        # Ask schedule how many agents to spawn THIS tick
+        count = self.spawn_schedule(self._simulator.current_tick)  # ← We need simulator reference
+
+        for _ in range(count):
             agent = self.agent_class()
             agent._enter_block(self)
             target_block.take(agent)
+
+    @staticmethod
+    def every_n_ticks(n: int, count: int = 1) -> Callable[[int], int]:
+        return lambda tick: count if tick % n == 0 else 0
+
+    @staticmethod
+    def random_burst(p: float, burst_size: int) -> Callable[[int], int]:
+        import random
+        return lambda tick: burst_size if random.random() < p else 0

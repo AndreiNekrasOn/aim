@@ -18,7 +18,7 @@ class HappyAgent(BaseAgent):
 # --- Build simulation ---
 
 # Create blocks
-source = SourceBlock(agent_class=HappyAgent, spawn_rate=1)
+source = SourceBlock(agent_class=HappyAgent)
 happy_sink = SinkBlock()
 grumpy_sink = SinkBlock()
 

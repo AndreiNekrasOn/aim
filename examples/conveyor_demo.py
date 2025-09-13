@@ -42,7 +42,7 @@ def main():
     cn.add_conveyor(conveyor)
 
     # Create blocks
-    source = SourceBlock(agent_class=DemoAgent, spawn_rate=1)
+    source = SourceBlock(agent_class=DemoAgent)
     conveyor_block = ConveyorBlock(conveyor=conveyor)
     sink = SinkBlock()
 

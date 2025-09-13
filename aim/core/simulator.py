@@ -38,7 +38,8 @@ class Simulator:
         self._event_scheduling_locked = False
 
     def add_block(self, block: BaseBlock) -> None:
-        """Register a block to be included in simulation ticks."""
+        """Register a block and inject simulator reference."""
+        block._simulator = self
         self.blocks.append(block)
 
     def subscribe(self, agent: BaseAgent, event: str) -> None:
