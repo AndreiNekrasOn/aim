@@ -12,6 +12,8 @@ from .blocks.sink import SinkBlock
 from .blocks.if_block import IfBlock
 from .blocks.queue import QueueBlock
 from .blocks.delay import DelayBlock
+from .blocks.restricted_area_start import RestrictedAreaStart
+from .blocks.restricted_area_end import RestrictedAreaEnd
 
 # Manufacturing-specific blocks and entities
 from .blocks.manufacturing.conveyor_block import ConveyorBlock
@@ -32,6 +34,8 @@ __all__ = [
     'IfBlock',
     'QueueBlock',
     'DelayBlock',
+    'RestrictedAreaStart',
+    'RestrictedAreaEnd',
 
     # Manufacturing
     'ConveyorBlock',

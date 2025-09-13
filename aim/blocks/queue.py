@@ -40,6 +40,8 @@ class QueueBlock(BaseBlock):
             # But under new strategy, target blocks SHOULD NOT reject
             # If they do, we hold agent
             try:
+                if self.on_exit is not None:
+                    self.on_exit(agent)
                 target_block.take(agent)
             except Exception:
                 # If target block raises or rejects, hold agent

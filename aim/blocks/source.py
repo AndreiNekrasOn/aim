@@ -45,7 +45,7 @@ class SourceBlock(BaseBlock):
         for _ in range(count):
             agent = self.agent_class()
             agent._enter_block(self)
-            target_block.take(agent)
+            self._eject(agent)
 
     @staticmethod
     def every_n_ticks(n: int, count: int = 1) -> Callable[[int], int]:

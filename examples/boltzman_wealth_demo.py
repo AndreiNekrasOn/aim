@@ -37,8 +37,8 @@ def run_market(sim: Simulator, agents: List[WealthAgent], tick: int):
 
 # --- SIMULATION SETUP ---
 
-sim = Simulator(max_ticks=10_000, random_seed=42)
-agents = [WealthAgent() for _ in range(10_000)]
+sim = Simulator(max_ticks=100, random_seed=42)
+agents = [WealthAgent() for _ in range(100)]
 
 for agent in agents:
     sim.add_agent(agent)

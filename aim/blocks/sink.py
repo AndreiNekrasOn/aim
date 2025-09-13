@@ -21,6 +21,8 @@ class SinkBlock(BaseBlock):
         """
         agent._enter_block(self)
         self._agents.append(agent)
+        if self.on_enter is not None:
+            self.on_enter(agent)
 
     def _tick(self) -> None:
         """

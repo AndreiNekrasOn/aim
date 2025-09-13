@@ -28,6 +28,8 @@ class ConveyorBlock(BaseBlock):
         Under new strategy: this should not happen — user must place QueueBlock upstream.
         """
         agent._enter_block(self)
+        if self.on_enter is not None:
+            self.on_enter(agent)
         if not self.conveyor.try_place_agent(agent):
             raise RuntimeError(f"ConveyorBlock {self} rejected agent {agent} — use QueueBlock upstream.")
 
@@ -38,5 +40,4 @@ class ConveyorBlock(BaseBlock):
         # Ejection handled via Conveyor._on_agents_ejected → _eject_agent
 
     def _eject_agent(self, agent: BaseAgent) -> None:
-        if self.output_connections and self.output_connections[0]:
-            self.output_connections[0].take(agent)
+        self._eject(agent)

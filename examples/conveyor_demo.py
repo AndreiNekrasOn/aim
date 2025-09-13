@@ -24,7 +24,7 @@ class DemoAgent(BaseAgent):
 
 def main():
     # --- SETUP ---
-    sim = Simulator(max_ticks=10_000)
+    sim = Simulator(max_ticks=100)
 
     # Create conveyor network
     cn = ConveyorNetwork()

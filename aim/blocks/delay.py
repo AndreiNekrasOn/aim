@@ -27,6 +27,8 @@ class DelayBlock(BaseBlock):
         Accept agent immediately. Schedule its ejection.
         """
         agent._enter_block(self)
+        if self.on_enter is not None:
+            self.on_enter(agent)
         # Schedule ejection at current_tick + delay_ticks
         eject_tick = self._simulator.current_tick + self.delay_ticks
         self._scheduled_ejections[agent] = eject_tick
@@ -49,8 +51,7 @@ class DelayBlock(BaseBlock):
 
         del self._scheduled_ejections[agent]
 
-        if self.output_connections and self.output_connections[0]:
-            self.output_connections[0].take(agent)
+        self._eject(agent)
 
     @property
     def size(self) -> int:

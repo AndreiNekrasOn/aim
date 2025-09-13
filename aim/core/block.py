@@ -1,7 +1,7 @@
 # core/block.py
 
 from .agent import BaseAgent
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List, Callable, TYPE_CHECKING
 from abc import ABC, abstractmethod
 
 if TYPE_CHECKING:
@@ -18,20 +18,23 @@ class BaseBlock(ABC):
         self._agents: List[BaseAgent] = []
         self.output_connections: List[Optional['BaseBlock']] = []
         self._simulator = simulator
+        self.on_enter: Optional[Callable[[BaseAgent], None]] = None
+        self.on_exit: Optional[Callable[[BaseAgent], None]] = None
 
         if simulator is not None:
             self._simulator = simulator
             simulator.add_block(self)
 
 
+
     @abstractmethod
     def take(self, agent: BaseAgent) -> None:
         """
-        Accept an agent. Must not reject. Must not raise.
-        If block is "full", it must buffer internally or use a QueueBlock upstream.
+        Accept agent. Must call agent._enter_block(self) and self.on_enter(agent).
         """
         agent._enter_block(self)
-        pass
+        if self.on_enter is not None:
+            self.on_enter(agent)
 
     def connect(self, *blocks: 'BaseBlock') -> None:
         """
@@ -48,6 +51,17 @@ class BaseBlock(ABC):
         Default: do nothing — assume instant processing.
         """
         pass
+
+    def _eject(self, agent: BaseAgent) -> None:
+        """
+        Internal: call on_exit and push to next block.
+        All blocks must use this when ejecting agents.
+        """
+        if self.on_exit is not None:
+            self.on_exit(agent)
+
+        if self.output_connections and self.output_connections[0]:
+            self.output_connections[0].take(agent)
 
     def _eject_all(self) -> List['BaseAgent']:
         """
