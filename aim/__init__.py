@@ -15,6 +15,7 @@ from .blocks.delay import DelayBlock
 from .blocks.restricted_area_start import RestrictedAreaStart
 from .blocks.restricted_area_end import RestrictedAreaEnd
 from .blocks.gate import GateBlock
+from .blocks.combine import CombineBlock
 
 # Manufacturing-specific blocks and entities
 from .blocks.manufacturing.conveyor_block import ConveyorBlock
@@ -38,6 +39,7 @@ __all__ = [
     'RestrictedAreaStart',
     'RestrictedAreaEnd',
     'GateBlock',
+    'CombineBlock',
 
     # Manufacturing
     'ConveyorBlock',
