@@ -10,6 +10,7 @@ from typing import List, Tuple, Optional, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from aim.spaces.manufacturing.conveyor_network import ConveyorNetwork
+    from aim.blocks.manufacturing.conveyor_block import ConveyorBlock
 
 Point3D = Tuple[float, float, float]
 

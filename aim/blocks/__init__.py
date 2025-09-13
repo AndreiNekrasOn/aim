@@ -7,6 +7,7 @@ from .queue import QueueBlock
 from .delay import DelayBlock
 from .restricted_area_start import RestrictedAreaStart
 from .restricted_area_end import RestrictedAreaEnd
+from .gate import GateBlock
 
 __all__ = [
     'SourceBlock',
@@ -16,4 +17,5 @@ __all__ = [
     'DelayBlock',
     'RestrictedAreaStart',
     'RestrictedAreaEnd',
+    'GateBlock'
 ]
