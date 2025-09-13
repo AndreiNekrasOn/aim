@@ -1,8 +1,11 @@
 # core/block.py
 
 from .agent import BaseAgent
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from abc import ABC, abstractmethod
+
+if TYPE_CHECKING:
+    from .simulator import Simulator
 
 class BaseBlock(ABC):
     """
@@ -11,19 +14,23 @@ class BaseBlock(ABC):
     and route them to connected blocks based on internal logic or agent state.
     """
 
-    def __init__(self):
-        self._agents: List[BaseAgent] = []  # Agents currently "in" this block
-        self.output_connections: List[Optional['BaseBlock']] = []  # e.g., [next_block]
+    def __init__(self, simulator: 'Simulator'):
+        self._agents: List[BaseAgent] = []
+        self.output_connections: List[Optional['BaseBlock']] = []
+        self._simulator = simulator
+
+        if simulator is not None:
+            self._simulator = simulator
+            simulator.add_block(self)
+
 
     @abstractmethod
-    def take(self, agent: 'BaseAgent') -> bool:
+    def take(self, agent: BaseAgent) -> None:
         """
-        Accept an agent into this block.
-        Must be overridden by subclasses.
-        Typically:
-          - Adds agent to internal list/queue
-          - May trigger immediate processing or hold for multiple ticks
+        Accept an agent. Must not reject. Must not raise.
+        If block is "full", it must buffer internally or use a QueueBlock upstream.
         """
+        agent._enter_block(self)
         pass
 
     def connect(self, *blocks: 'BaseBlock') -> None:

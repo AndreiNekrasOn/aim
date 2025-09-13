@@ -2,6 +2,7 @@
 
 from typing import Optional, List
 from aim.core.block import BaseBlock
+from aim.core.simulator import Simulator
 from aim.core.agent import BaseAgent
 from aim.entities.manufacturing.conveyor import Conveyor
 
@@ -13,37 +14,29 @@ class ConveyorBlock(BaseBlock):
     Ejects agents to next block when they reach end of conveyor.
     """
 
-    def __init__(self, conveyor: Conveyor):
-        super().__init__()
+    def __init__(self,
+             simulator: Simulator,
+             conveyor: Conveyor):
+        super().__init__(simulator)
         self.conveyor = conveyor
         self.conveyor.block = self  # ← bind for ejection callback
         self._rejected_agents: List[BaseAgent] = []
 
-    def take(self, agent: BaseAgent) -> bool:
-        if self.conveyor.try_place_agent(agent):
-            agent._enter_block(self)
-            return True
-        else:
-            self._rejected_agents.append(agent)
-            return False
+    def take(self, agent: BaseAgent) -> None:
+        """
+        Try to place agent on conveyor. If rejected, RAISE or let system handle via QueueBlock.
+        Under new strategy: this should not happen — user must place QueueBlock upstream.
+        """
+        agent._enter_block(self)
+        if not self.conveyor.try_place_agent(agent):
+            raise RuntimeError(f"ConveyorBlock {self} rejected agent {agent} — use QueueBlock upstream.")
 
     def _tick(self) -> None:
         if self.conveyor.network is None:
             return
-
-        # Advance network
         self.conveyor.network.update(delta_time=1.0)
-
-        # Retry rejected agents
-        still_rejected = []
-        for agent in self._rejected_agents:
-            if not self.take(agent):
-                still_rejected.append(agent)
-        self._rejected_agents = still_rejected
-
-        # Ejection is handled via Conveyor._on_agents_ejected → calls self._eject_agent
+        # Ejection handled via Conveyor._on_agents_ejected → _eject_agent
 
     def _eject_agent(self, agent: BaseAgent) -> None:
-        """Push agent to next block."""
         if self.output_connections and self.output_connections[0]:
             self.output_connections[0].take(agent)

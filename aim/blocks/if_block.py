@@ -1,18 +1,20 @@
 # blocks/if_block.py
 
+from ..core.simulator import Simulator
 from ..core.block import BaseBlock
 from ..core.agent import BaseAgent
 from typing import Callable
 
 
 class IfBlock(BaseBlock):
-    def __init__(self, condition: Callable[[BaseAgent], bool]):
-        super().__init__()
+    def __init__(self, simulator: Simulator, condition: Callable[[BaseAgent], bool]):
+        super().__init__(simulator)
         self.condition = condition
 
-    def take(self, agent: BaseAgent) -> None:
+    def take(self, agent: BaseAgent) -> bool:
         agent._enter_block(self)
         self._agents.append(agent)
+        return True
 
     def _tick(self) -> None:
         # Process all agents waiting in this block

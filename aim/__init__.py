@@ -10,6 +10,8 @@ from .core.space import Space, SpatialEntity
 from .blocks.source import SourceBlock
 from .blocks.sink import SinkBlock
 from .blocks.if_block import IfBlock
+from .blocks.queue import QueueBlock
+from .blocks.delay import DelayBlock
 
 # Manufacturing-specific blocks and entities
 from .blocks.manufacturing.conveyor_block import ConveyorBlock
@@ -28,6 +30,8 @@ __all__ = [
     'SourceBlock',
     'SinkBlock',
     'IfBlock',
+    'QueueBlock',
+    'DelayBlock',
 
     # Manufacturing
     'ConveyorBlock',

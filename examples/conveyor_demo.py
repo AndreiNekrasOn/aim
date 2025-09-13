@@ -1,6 +1,7 @@
 # examples/conveyor_demo.py
 
 from aim import BaseAgent, Simulator
+from aim.blocks.queue import QueueBlock
 from aim.blocks.source import SourceBlock
 from aim.blocks.sink import SinkBlock
 from aim.blocks.manufacturing.conveyor_block import ConveyorBlock
@@ -42,18 +43,15 @@ def main():
     cn.add_conveyor(conveyor)
 
     # Create blocks
-    source = SourceBlock(agent_class=DemoAgent)
-    conveyor_block = ConveyorBlock(conveyor=conveyor)
-    sink = SinkBlock()
+    source = SourceBlock(sim, agent_class=DemoAgent)
+    queue = QueueBlock(sim)
+    conveyor_block = ConveyorBlock(sim, conveyor=conveyor)
+    sink = SinkBlock(sim)
 
     # Wire pipeline
-    source.connect(conveyor_block)
+    source.connect(queue)
+    queue.connect(conveyor_block)
     conveyor_block.connect(sink)  # eject to sink
-
-    # Register blocks with simulator
-    sim.add_block(source)
-    sim.add_block(conveyor_block)
-    sim.add_block(sink)
 
     # --- RUN ---
     print("Starting simulation...\n")

@@ -16,24 +16,18 @@ class HappyAgent(BaseAgent):
 
 
 # --- Build simulation ---
+sim = Simulator(max_ticks=5)
 
 # Create blocks
-source = SourceBlock(agent_class=HappyAgent)
-happy_sink = SinkBlock()
-grumpy_sink = SinkBlock()
+source = SourceBlock(sim, agent_class=HappyAgent)
+happy_sink = SinkBlock(sim)
+grumpy_sink = SinkBlock(sim)
 
 # Router: send happy agents to happy_sink, others to grumpy_sink
-router = IfBlock(condition=lambda agent: agent.is_happy)
+router = IfBlock(sim, condition=lambda agent: agent.is_happy)
 router.connect_first(happy_sink)    # True branch
 router.connect_second(grumpy_sink)  # False branch
 source.connect(router)
-
-# Create and run simulator
-sim = Simulator(max_ticks=5)
-sim.add_block(source)
-sim.add_block(router)
-sim.add_block(happy_sink)
-sim.add_block(grumpy_sink)
 
 sim.run()
 
