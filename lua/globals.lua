@@ -1,1 +1,0 @@
-TOTE_NUMBER = 0
