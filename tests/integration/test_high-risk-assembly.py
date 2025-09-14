@@ -94,14 +94,15 @@ def main():
     rework_delay.connect(sink)
 
     # --- RUN ---
-    print("Starting High-Risk Assembly Station Simulation...\n")
     sim.run()
 
     # --- RESULTS ---
-    print(f"\nSimulation finished after {sim.current_tick} ticks.")
-    print(f"Total devices completed: {sink.count}")
-    print(f"Peak occupancy in restricted area: {start.active_agents} (max allowed: 2)")
+    assert sink.count == 31 # imperical
+    assert start.active_agents == 2
 
 
-if __name__ == "__main__":
+def test_high_risk_assembly():
+    main()
+
+if __name__ == '__main__':
     main()

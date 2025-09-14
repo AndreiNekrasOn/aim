@@ -50,8 +50,11 @@ def main():
     sim.run()
 
     # Print results
-    print(f"Direct sink count: {direct_sink.count}")
-    print(f"Split sink count: {container_sink.count}")
+    assert direct_sink.count == 6
+    assert container_sink.count == 4
+
+def test_split_combine():
+    main()
 
 if __name__ == "__main__":
     main()

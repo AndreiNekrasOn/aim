@@ -63,9 +63,14 @@ def main():
     print("STARTING GATE FEEDBACK DEMO\n")
     sim.run()
 
+    assert sink.count == 5
+    assert gate.state() == "closed"
     print(f"\nTOTAL AGENTS PROCESSED: {sink.count}")
     print(f"FINAL GATE STATE: {gate.state()}")
 
-
-if __name__ == "__main__":
+def test_gate():
     main()
+
+if __name__ == '__main__':
+    main()
+
