@@ -75,20 +75,30 @@ Written by QWEN
 
 ### `aim.core.space.SpaceManager`
 
-**Description**: Abstract base class for spatial systems. Manages agent position, movement, and collision.
+**Description**: Abstract base class for spatial systems. Manages agent position, movement, and collision. Agents must be registered with the space before entering spatial blocks. Spatial entities (e.g., `Conveyor`, `TurnTable`) must be registered with the space before use.
 
 **Public Methods**:
 
+- `register_entity(self, entity: Any) -> None`
+  Register a spatial entity (e.g., `Conveyor`, `TurnTable`) with the space. Must be called before any agent attempts to use the entity. Idempotent.
+
+- `is_entity_registered(self, entity: Any) -> bool`
+  Check if a spatial entity is registered with the space.
+
 - `register(self, agent: BaseAgent, initial_state: Dict[str, Any]) -> bool`
-  - Register agent with initial state. Returns `False` if rejected (e.g., collision).
+  Register agent with initial state.
+  Returns False if agent cannot be placed (e.g., collision, unregistered entity).
+  Expected keys in `initial_state`: "start_entity", "end_entity" (for pathfinding).
+
 - `unregister(self, agent: BaseAgent) -> bool`
-  - Unregister agent from space. Returns `False` if not registered.
+  Unregister agent from space. Returns False if agent was not registered.
+
 - `update(self, delta_time: float) -> None`
-  - Advance all agents by `delta_time`. Moves agents, checks collisions.
-- `get_state(self, agent: BaseAgent) -> Dict[str, Any]`
-  - Get current space-specific state of agent.
+  Advance all agents by delta_time.
+  For `Conveyor`: progress += (speed * delta_time) / total_length.
+
 - `is_movement_complete(self, agent: BaseAgent) -> bool`
-  - Check if agent has completed its current movement (e.g., reached end of path).
+  Check if agent has completed its current movement (e.g., reached end of path).
 
 ---
 
@@ -236,24 +246,36 @@ Written by QWEN
 
 ### `aim.blocks.manufacturing.conveyor_block.ConveyorBlock`
 
-**Description**: Moves agents through a `ConveyorSpace` from `start_entity` to `end_entity`.
+**Description**: Block that moves agents through a `ConveyorSpace` from `start_entity` to `end_entity`.
+Does NOT eject agents when movement is complete -- must use `ConveyorExit`.
+Enforces one agent entry per tick -- subsequent agents in same tick are rejected with `RuntimeError`.
+Holds agents that complete movement if downstream block rejects them -- retries ejection each tick.
 
 **Public Methods/Attributes**:
 
 - `__init__(self, simulator: Simulator, space: SpaceManager, start_entity: Any, end_entity: Any)`
-  - `space`: `ConveyorSpace` managing movement.
-  - `start_entity`, `end_entity`: Spatial entities (e.g., `Conveyor`, `TurnTable`).
+  Raises `ValueError` if `start_entity` or `end_entity` is not registered with `space`.
+
+- `take(self, agent: BaseAgent) -> None`
+  Place agent in space at `start_entity`.
+  Rejects agent if:
+    -- Space registration fails (collision, invalid entity), or
+    -- An agent already entered this tick (`RuntimeError: only one agent per tick`).
+
+- `_tick(self) -> None`
+  Ejects agents for which `space.is_movement_complete(agent)` is `True`.
+  If ejection fails (downstream rejects), agent remains in block and retries next tick.
 
 ---
 
 ### `aim.blocks.manufacturing.conveyor_exit.ConveyorExit`
 
-**Description**: Removes agents from space (frees occupancy).
+**Description**: Removes agents from space (frees occupancy). Does not unregister agents -- unregistration is handled by `ConveyorBlock` upon successful ejection.
 
 **Public Methods/Attributes**:
 
-- `__init__(self, simulator: Simulator, space: SpaceManager)`
-  - `space`: `ConveyorSpace` managing agents.
+- `take(self, agent: BaseAgent) -> None`
+  Simply passes agent to next block. Does not interact with space.
 
 ---
 
