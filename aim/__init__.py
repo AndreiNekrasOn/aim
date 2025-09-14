@@ -5,6 +5,10 @@ from .core.agent import BaseAgent
 from .core.block import BaseBlock
 from .core.simulator import Simulator
 
+# Space
+from .core.space import SpaceManager
+from .core.space import SpatialEntity
+
 # Built-in blocks
 from .blocks.source import SourceBlock
 from .blocks.sink import SinkBlock
@@ -22,6 +26,10 @@ __all__ = [
     'BaseAgent',
     'BaseBlock',
     'Simulator',
+
+    # Space
+    "SpaceManager",
+    'SpatialEntity',
 
     # Generic Blocks
     'SourceBlock',

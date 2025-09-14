@@ -1,11 +1,12 @@
 # core/simulator.py
 
-from typing import List, Dict, Callable, Any, Set
+from typing import List, Dict, Callable, Any, Set, Optional
 from collections import defaultdict
 import random
 
 from .agent import BaseAgent
 from .block import BaseBlock
+from .space import SpaceManager
 
 
 class Simulator:
@@ -14,27 +15,20 @@ class Simulator:
     Manages ticks, agents, blocks, agent-emitted events, and scheduled timed events.
     """
 
-    def __init__(self, max_ticks: int = 1000, random_seed: int = 42):
+    def __init__(self, max_ticks: int = 1000, random_seed: int = 42, space: Optional[SpaceManager] = None):
         self.max_ticks = max_ticks
         self.current_tick = 0
         self.random_seed = random_seed
-        random.seed(self.random_seed)  # For event ordering
+        random.seed(self.random_seed)
+        self.space = space  # ← ADD THIS
 
         self.blocks: List[BaseBlock] = []
         self.agents: List[BaseAgent] = []
 
-        # --- Agent Event System ---
-        # Subscription: event string -> set of agents
         self._event_subscriptions: Dict[str, Set[BaseAgent]] = defaultdict(set)
-        # Pending delivery: agent -> list of events (to be delivered next tick)
         self._pending_events: Dict[BaseAgent, List[str]] = defaultdict(list)
-        # Events emitted this tick (collected at end of tick)
         self._events_this_tick: List[str] = []
-
-        # --- Scheduled Timed Events ---
-        # Format: { tick: [ (callback, is_recurring, interval) ] }
         self._scheduled_events: Dict[int, List[Any]] = defaultdict(list)
-        # Flag to prevent event callbacks from scheduling new events during execution
         self._event_scheduling_locked = False
 
     def add_block(self, block: BaseBlock) -> None:
@@ -75,15 +69,23 @@ class Simulator:
     def tick(self) -> None:
         """
         Execute one simulation tick in this order:
-        1. Execute scheduled events for this tick (in randomized order).
-        2. Deliver pending agent-emitted events (from last tick).
-        3. Advance all blocks (call ._tick()).
-        4. Collect new agent-emitted events (for delivery next tick).
+        1. Execute scheduled events (callbacks).
+        2. Update space (move agents, check collisions).
+        3. Deliver pending agent events (from last tick).
+        4. Advance all blocks (call ._tick()).
+        5. Collect new agent-emitted events (for delivery next tick).
         """
         self._process_scheduled_events()
+
+        # Update space — move agents, check collisions
+        if hasattr(self, 'space') and self.space is not None:
+            self.space.update(delta_time=1.0)
+
         self._deliver_pending_events()
+
         for block in self.blocks:
             block._tick()
+
         self._collect_emitted_events()
 
     def _process_scheduled_events(self) -> None:
