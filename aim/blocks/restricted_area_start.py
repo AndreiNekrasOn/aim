@@ -59,8 +59,6 @@ class RestrictedAreaStart(BaseBlock):
                 self.current_agents += 1
                 # Mark agent as inside restricted area (optional)
                 setattr(agent, '_restricted_area_start', self)
-                if self.output_connections and self.output_connections[0]:
-                    self.output_connections[0].take(agent)
                 self._eject(agent)
             else:
                 remaining.append(agent)

@@ -9,6 +9,7 @@ from .restricted_area_start import RestrictedAreaStart
 from .restricted_area_end import RestrictedAreaEnd
 from .gate import GateBlock
 from .combine import CombineBlock
+from .split import SplitBlock
 
 __all__ = [
     'SourceBlock',
@@ -20,4 +21,5 @@ __all__ = [
     'RestrictedAreaEnd',
     'GateBlock',
     'CombineBlock',
+    'SplitBlock',
 ]
