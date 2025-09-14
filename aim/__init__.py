@@ -4,7 +4,6 @@
 from .core.agent import BaseAgent
 from .core.block import BaseBlock
 from .core.simulator import Simulator
-from .core.space import Space, SpatialEntity
 
 # Built-in blocks
 from .blocks.source import SourceBlock
@@ -18,18 +17,11 @@ from .blocks.gate import GateBlock
 from .blocks.combine import CombineBlock
 from .blocks.split import SplitBlock
 
-# Manufacturing-specific blocks and entities
-from .blocks.manufacturing.conveyor_block import ConveyorBlock
-from .entities.manufacturing.conveyor import Conveyor
-from .spaces.manufacturing.conveyor_network import ConveyorNetwork
-
 __all__ = [
     # Core
     'BaseAgent',
     'BaseBlock',
     'Simulator',
-    'Space',
-    'SpatialEntity',
 
     # Generic Blocks
     'SourceBlock',
@@ -42,9 +34,4 @@ __all__ = [
     'GateBlock',
     'CombineBlock',
     'SplitBlock',
-
-    # Manufacturing
-    'ConveyorBlock',
-    'Conveyor',
-    'ConveyorNetwork',
 ]

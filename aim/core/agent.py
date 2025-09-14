@@ -14,7 +14,6 @@ class BaseAgent:
     def __init__(self):
         self._current_block = None
         self._pending_events: List[str] = []
-        self.space: Optional[Space] = None
         self.position = None
         self.velocity = None
         # User-defined state goes here — no schema enforced.

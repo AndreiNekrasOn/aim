@@ -30,11 +30,6 @@ Modify agent state or split/combine agents.
 - `SplitBlock` — splits one agent into itself + children (uses `children_agents`).
 
 ### 3. Spatial Simulation
-Optional layer for 3D movement, conveyors, zones.
-
-- `ConveyorBlock` — interface to conveyor.
-- `Conveyor` — spatial entity (path, speed).
-- `ConveyorNetwork` — manages conveyors and agent positions.
 
 ---
 
