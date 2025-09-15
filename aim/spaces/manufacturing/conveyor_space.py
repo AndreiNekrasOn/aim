@@ -1,10 +1,12 @@
-# spaces/manufacturing/conveyor_space.py
+import heapq
+import sys
+from typing import Dict, Any, List, Optional, Set, Tuple
 
-from typing import Dict, Any, List, Optional, Set
 from aim.core.space import SpaceManager
 from aim.core.agent import BaseAgent
 from aim.entities.manufacturing.conveyor import Conveyor
 from aim.entities.manufacturing.turn_table import TurnTable
+
 
 class ConveyorSpace(SpaceManager):
     """
@@ -15,130 +17,191 @@ class ConveyorSpace(SpaceManager):
     def __init__(self):
         # Agent -> current entity (Conveyor, TurnTable, etc.)
         self._agent_entity: Dict[BaseAgent, Any] = {}
-        # Agent -> movement state (progress, angle, target, etc.)
-        self._agent_movement: Dict[BaseAgent, Dict[str, Any]] = {}
         # Entity -> set of agents on it (for collision detection)
         self._entity_agents: Dict[Any, Set[BaseAgent]] = {}
-        # Set of all registered spatial entities (Conveyor, TurnTable, etc.)
 
     def register_entity(self, entity: Any) -> None:
-        """
-        Register a spatial entity (Conveyor, TurnTable, etc.) with this space.
-        Ensures the entity is tracked for agent placement and collision detection.
-        Safe to call multiple times — idempotent.
-        """
         if entity not in self._entity_agents:
             self._entity_agents[entity] = set()
 
     def is_entity_registered(self, entity: Any) -> bool:
-        """
-        Check if a spatial entity is registered with this space.
-        """
         return entity in self._entity_agents
 
-    def register(self, agent: BaseAgent, initial_state: Dict[str, Any]) -> bool:
-        start_entity = initial_state.get("start_entity")
-        if start_entity is None:
-            return False
-
-        if not self.is_entity_registered(start_entity):
-            return False
-
-        # Initialize movement state BEFORE adding to entity_agents
-        if isinstance(start_entity, Conveyor):
-            self._agent_movement[agent] = {"progress": 0.0, "target_entity": initial_state.get("end_entity")}
-        elif isinstance(start_entity, TurnTable):
-            target_angle = initial_state.get("target_angle", 0.0)
-            self._agent_movement[agent] = {"angle": 0.0, "target_angle": target_angle, "target_entity": initial_state.get("end_entity")}
+    def _compute_entity_time(self, entity: Any) -> float:
+        """Compute time to traverse entity. Returns inf if invalid."""
+        if isinstance(entity, Conveyor):
+            length = entity.get_total_length()
+            if length <= 0 or entity.speed <= 0:
+                return float('inf')
+            return length / entity.speed
+        elif isinstance(entity, TurnTable):
+            # Assume full rotation if no target_angle
+            if not hasattr(entity, 'angular_speed') or entity.angular_speed <= 0:
+                return float('inf')
+            # For now, assume 2*pi radians for full turn
+            return 6.28318530718 / entity.angular_speed
         else:
-            # Unknown entity type — fail
+            # Unknown entity — assume 1.0 time unit
+            return 1.0
+
+    def _find_shortest_path(self, start: Any, end: Any) -> Optional[List[Any]]:
+        """
+        Find shortest-time path from start to end using Dijkstra's algorithm.
+        Returns list of entities from start to end, or None if no path.
+        """
+        if start == end:
+            return [start]
+
+        # Priority queue: (time, entity, path)
+        pq = [(0.0, start, [start])]
+        visited = set()
+
+        while pq:
+            current_time, current_entity, path = heapq.heappop(pq)
+
+            if current_entity in visited:
+                continue
+            visited.add(current_entity)
+
+            if not hasattr(current_entity, 'connections'):
+                continue
+
+            for neighbor in current_entity.connections:
+                if neighbor in visited:
+                    continue
+
+                edge_time = self._compute_entity_time(neighbor)
+                if edge_time == float('inf'):
+                    continue
+
+                new_time = current_time + edge_time
+                new_path = path + [neighbor]
+
+                if neighbor == end:
+                    return new_path
+
+                heapq.heappush(pq, (new_time, neighbor, new_path))
+
+        return None
+
+    def register(self, agent: BaseAgent, initial_state: Dict[str, Any]) -> bool:
+        print(f"[SPACE] Registering agent {id(agent)} from {initial_state.get('start_entity')} to {initial_state.get('end_entity')}")
+        start_entity = initial_state.get("start_entity")
+        end_entity = initial_state.get("end_entity")
+
+        if start_entity is None or end_entity is None:
+            print("[SPACE] Missing start or end entity")
             return False
 
-        # Now check collision — all other agents have guaranteed state
+        if not self.is_entity_registered(start_entity) or not self.is_entity_registered(end_entity):
+            print("[SPACE] Entity not registered")
+            return False
+
+        path = self._find_shortest_path(start_entity, end_entity)
+        if path is None:
+            print(f"[SPACE] NO PATH FOUND from {start_entity} to {end_entity}")
+            sys.exit(1)  # You should see this if no path
+        print(f"[SPACE] Path found: {[getattr(e, 'name', str(e)) for e in path]}")
+
+        # Compute total time for path
+        total_time = 0.0
+        for entity in path:
+            total_time += self._compute_entity_time(entity)
+
+        if total_time <= 0:
+            total_time = 1.0  # Avoid division by zero
+
+        # Initialize space_state
+        agent.space_state = {
+            "entity": start_entity,
+            "path": path,
+            "progress_on_entity": 0.0,
+            "progress_on_path": 0.0,
+            "target_entity": end_entity,
+            "total_time": total_time,
+            "elapsed_time": 0.0,
+            "elapsed_time_on_entity": 0.0
+        }
+
+        # Check collision on start_entity only
         if not self._can_place_agent(agent, start_entity):
-            # Clean up — remove from _agent_movement since placement failed
-            del self._agent_movement[agent]
+            agent.space_state = {}
             return False
 
-        # Assign to entity — now safe to add
+        # Assign to entity
         self._agent_entity[agent] = start_entity
         self._entity_agents[start_entity].add(agent)
 
         return True
 
     def unregister(self, agent: BaseAgent) -> bool:
-        """
-        Unregister agent from space.
-        Returns False if agent was not registered.
-        """
         if agent not in self._agent_entity:
             return False
 
         entity = self._agent_entity[agent]
         self._entity_agents[entity].discard(agent)
-        # if len(self._entity_agents[entity]) == 0:
-        #     del self._entity_agents[entity]
+
+        # Clear agent's space_state
+        agent.space_state = {}
 
         del self._agent_entity[agent]
-        del self._agent_movement[agent]
 
         return True
 
     def update(self, delta_time: float) -> None:
-        """
-        Advance all agents by delta_time.
-        Move agents, check collisions, update state.
-        """
         for agent in list(self._agent_entity.keys()):
-            entity = self._agent_entity[agent]
-            state = self._agent_movement[agent]
+            state = agent.space_state
+            if not state:
+                continue
 
-            if isinstance(entity, Conveyor):
-                total_length = entity.get_total_length()
-                if total_length <= 0:
-                    state["progress"] = 1.0
-                    continue
+            current_entity = state["entity"]
+            entity_time = self._compute_entity_time(current_entity)
 
-                # Convert speed (distance/time) to progress/time
-                distance_traveled = entity.speed * delta_time
-                progress_increment = distance_traveled / total_length
+            # Update time on current entity
+            state["elapsed_time_on_entity"] += delta_time
+            state["elapsed_time"] += delta_time
 
-                new_progress = state["progress"] + progress_increment
-                if new_progress > 1.0:
-                    new_progress = 1.0
-                state["progress"] = new_progress
+            # Update progress on current entity
+            if entity_time > 0:
+                progress_on_entity = state["elapsed_time_on_entity"] / entity_time
+                state["progress_on_entity"] = min(1.0, progress_on_entity)
+            else:
+                state["progress_on_entity"] = 1.0
 
-            elif isinstance(entity, TurnTable):
-                new_angle = state["angle"] + (entity.angular_speed * delta_time)
-                target_angle = state["target_angle"]
-                if new_angle >= target_angle:
-                    new_angle = target_angle
-                state["angle"] = new_angle
+            # Update progress on path
+            if state["total_time"] > 0:
+                state["progress_on_path"] = min(1.0, state["elapsed_time"] / state["total_time"])
+            else:
+                state["progress_on_path"] = 1.0
+
+            # Check if need to move to next entity
+            if state["progress_on_entity"] >= 1.0:
+                path = state["path"]
+                if len(path) > 1:
+                    # Move to next entity
+                    next_entity = path[1]
+                    state["entity"] = next_entity
+                    state["path"] = path[1:]
+                    state["elapsed_time_on_entity"] = 0.0  # Reset for new entity
+                    # Reassign in space
+                    old_entity = self._agent_entity[agent]
+                    self._entity_agents[old_entity].discard(agent)
+                    self._agent_entity[agent] = next_entity
+                    if next_entity not in self._entity_agents:
+                        self._entity_agents[next_entity] = set()
+                    self._entity_agents[next_entity].add(agent)
+                else:
+                    # End of path — do nothing, agent will be ejected when progress_on_path=1.0
+                    pass
 
     def get_state(self, agent: BaseAgent) -> Dict[str, Any]:
-        """
-        Get current space-specific state of agent.
-        """
-        if agent not in self._agent_movement:
-            return {}
-        return self._agent_movement[agent].copy()
+        return agent.space_state.copy()
 
     def is_movement_complete(self, agent: BaseAgent) -> bool:
-        """
-        Check if agent has completed movement on current entity.
-        """
-        if agent not in self._agent_movement:
+        state = agent.space_state
+        if not state:
             return False
-
-        state = self._agent_movement[agent]
-        entity = self._agent_entity[agent]
-
-        if isinstance(entity, Conveyor):
-            return state["progress"] >= 1.0
-        elif isinstance(entity, TurnTable):
-            return state["angle"] >= state["target_angle"]
-
-        return False
+        return state.get("progress_on_path", 0.0) >= 1.0
 
     def _can_place_agent(self, agent: BaseAgent, entity: Any) -> bool:
         if entity not in self._entity_agents:
@@ -151,11 +214,12 @@ class ConveyorSpace(SpaceManager):
             required_progress = agent.length / total_length
 
             for other_agent in self._entity_agents[entity]:
-                other_state = self._agent_movement[other_agent]
-                other_start = other_state["progress"] - other_agent.length / total_length
-                other_end = other_state["progress"]
+                other_state = other_agent.space_state
+                if not other_state:
+                    continue
+                other_start = other_state["progress_on_entity"] - other_agent.length / total_length
+                other_end = other_state["progress_on_entity"]
                 if other_start < required_progress and other_end > 0.0:
                     return False
-                assert other_agent in self._agent_movement, f"Agent {id(other_agent)} has no movement state!"
 
         return True

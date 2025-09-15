@@ -53,8 +53,6 @@ class ConveyorBlock(BaseBlock):
             raise RuntimeError(f"ConveyorBlock: agent {id(agent)} rejected, only one per tick may enter")
         agent._enter_block(self)
         self._agent_entered_this_tick = True
-        if self.on_enter is not None:
-            self.on_enter(agent)
 
         initial_state = {
             "start_entity": self.start_entity,
@@ -62,6 +60,9 @@ class ConveyorBlock(BaseBlock):
         }
         if not self.space.register(agent, initial_state):
             raise RuntimeError(f"ConveyorBlock: agent {id(agent)} rejected by space")
+
+        if self.on_enter is not None:
+            self.on_enter(agent)
 
         # Add to internal list — will be held until ConveyorExit
         self._agents.append(agent)
@@ -77,7 +78,6 @@ class ConveyorBlock(BaseBlock):
         # Check each agent to see if movement is complete
         completed_agents = []
         for agent in self._agents:
-            state = self.space._agent_movement[agent]
             if self.space.is_movement_complete(agent):
                 completed_agents.append(agent)
 
