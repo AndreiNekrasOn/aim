@@ -15,7 +15,7 @@ class Simulator:
     Manages ticks, agents, blocks, agent-emitted events, and scheduled timed events.
     """
 
-    def __init__(self, max_ticks: int = 1000, random_seed: int = 42, space: Optional[SpaceManager] = None):
+    def __init__(self, max_ticks: int = 1000, random_seed: int = 42, space: Optional[SpaceManager] = None, viewer = None):
         self.max_ticks = max_ticks
         self.current_tick = 0
         self.random_seed = random_seed
@@ -25,11 +25,14 @@ class Simulator:
         self.blocks: List[BaseBlock] = []
         self.agents: List[BaseAgent] = []
 
+        self.viewer = viewer
+
         self._event_subscriptions: Dict[str, Set[BaseAgent]] = defaultdict(set)
         self._pending_events: Dict[BaseAgent, List[str]] = defaultdict(list)
         self._events_this_tick: List[str] = []
         self._scheduled_events: Dict[int, List[Any]] = defaultdict(list)
         self._event_scheduling_locked = False
+
 
     def add_block(self, block: BaseBlock) -> None:
         """Register a block and inject simulator reference."""
@@ -87,6 +90,10 @@ class Simulator:
             block._tick()
 
         self._collect_emitted_events()
+
+        if hasattr(self, 'viewer') and self.viewer is not None:
+            if hasattr(self.viewer, 'render_tick'):
+                self.viewer.render_tick(self.current_tick)
 
     def _process_scheduled_events(self) -> None:
         """Execute all callbacks scheduled for current_tick in randomized order."""
@@ -147,3 +154,7 @@ class Simulator:
     def add_agent(self, agent: BaseAgent) -> None:
         """Manually add an agent to simulation."""
         self.agents.append(agent)
+
+    def remove_agent(self, agent: BaseAgent) -> None:
+        """Manually remove an agent from simulation."""
+        self.agents.remove(agent)

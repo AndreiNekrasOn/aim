@@ -85,7 +85,7 @@ class ConveyorSpace(SpaceManager):
         return None
 
     def register(self, agent: BaseAgent, initial_state: Dict[str, Any]) -> bool:
-        print(f"[SPACE] Registering agent {id(agent)} from {initial_state.get('start_entity')} to {initial_state.get('end_entity')}")
+        # print(f"[SPACE] Registering agent {id(agent)} from {initial_state.get('start_entity')} to {initial_state.get('end_entity')}")
         start_entity = initial_state.get("start_entity")
         end_entity = initial_state.get("end_entity")
 
@@ -101,7 +101,7 @@ class ConveyorSpace(SpaceManager):
         if path is None:
             print(f"[SPACE] NO PATH FOUND from {start_entity} to {end_entity}")
             sys.exit(1)  # You should see this if no path
-        print(f"[SPACE] Path found: {[getattr(e, 'name', str(e)) for e in path]}")
+        # print(f"[SPACE] Path found: {[getattr(e, 'name', str(e)) for e in path]}")
 
         # Compute total time for path
         total_time = 0.0
@@ -183,6 +183,7 @@ class ConveyorSpace(SpaceManager):
                     state["entity"] = next_entity
                     state["path"] = path[1:]
                     state["elapsed_time_on_entity"] = 0.0  # Reset for new entity
+                    state["progress_on_entity"] = 0.0  # Reset for new entity
                     # Reassign in space
                     old_entity = self._agent_entity[agent]
                     self._entity_agents[old_entity].discard(agent)

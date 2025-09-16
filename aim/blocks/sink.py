@@ -13,6 +13,7 @@ class SinkBlock(BaseBlock):
     def __init__(self,
             simulator: Simulator):
         super().__init__(simulator)
+        self.simulator = simulator
 
     def take(self, agent: BaseAgent) -> None:
         """
@@ -23,6 +24,10 @@ class SinkBlock(BaseBlock):
         self._agents.append(agent)
         if self.on_enter is not None:
             self.on_enter(agent)
+        try:
+            self.simulator.remove_agent(agent)
+        except Exception:
+            pass
 
     def _tick(self) -> None:
         """

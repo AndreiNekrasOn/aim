@@ -24,6 +24,7 @@ class SourceBlock(BaseBlock):
                                Default: spawns 1 agent per tick.
         """
         super().__init__(simulator)
+        self.simulator = simulator
         self.agent_class = agent_class
         self.spawn_schedule = spawn_schedule
 
@@ -44,6 +45,7 @@ class SourceBlock(BaseBlock):
 
         for _ in range(count):
             agent = self.agent_class()
+            self.simulator.add_agent(agent)
             agent._enter_block(self)
             self._eject(agent)
 
