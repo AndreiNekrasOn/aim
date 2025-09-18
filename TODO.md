@@ -1,0 +1,3 @@
+- [ ] 3D visualization
+- [ ] ConveyorSpace editor, JSON-compatible schema and reader
+- [ ] SwitchBlock
