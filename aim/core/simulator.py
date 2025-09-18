@@ -102,31 +102,27 @@ class Simulator:
 
 
     def _process_scheduled_events(self) -> None:
-        """Execute all callbacks scheduled for current_tick in randomized order."""
         events = self._scheduled_events.pop(self.current_tick, [])
         if not events:
             return
 
-        # Shuffle order for this tick (reproducible via seed)
         shuffled_events = events[:]
         random.shuffle(shuffled_events)
 
-        # Lock event scheduling during execution
         self._event_scheduling_locked = True
-        reschedule_queue = []  # (callback, interval) tuples to reschedule AFTER unlock
+        reschedule_queue = []
         try:
             for callback, recurring, interval in shuffled_events:
                 callback(self.current_tick)
                 if recurring:
-                    # Queue for rescheduling — do NOT schedule while locked
-                    reschedule_queue.append((callback, interval))
+                    # If interval is 0, use 1 to avoid scheduling in same tick
+                    delay = interval if interval > 0 else 1
+                    reschedule_queue.append((callback, delay))
         finally:
             self._event_scheduling_locked = False
 
-        # Now safely reschedule recurring events
-        for callback, interval in reschedule_queue:
-            self.schedule_event(callback, interval, recurring=True)
-
+        for callback, delay in reschedule_queue:
+            self.schedule_event(callback, delay_ticks=delay, recurring=True)
 
     def _deliver_pending_events(self) -> None:
         """Deliver staged events to agents and trigger on_event."""
