@@ -10,6 +10,7 @@ class IfBlock(BaseBlock):
     def __init__(self, simulator: Simulator, condition: Callable[[BaseAgent], bool]):
         super().__init__(simulator)
         self.condition = condition
+        self.output_connections = [None, None]
 
     def take(self, agent: BaseAgent) -> bool:
         agent._enter_block(self)
@@ -29,12 +30,8 @@ class IfBlock(BaseBlock):
 
     def connect_first(self, block: BaseBlock):
         """Connect the 'True' branch."""
-        if len(self.output_connections) < 1:
-            self.output_connections.append(None)
         self.output_connections[0] = block
 
     def connect_second(self, block: BaseBlock):
         """Connect the 'False' branch."""
-        if len(self.output_connections) < 2:
-            self.output_connections.append(None)
         self.output_connections[1] = block
