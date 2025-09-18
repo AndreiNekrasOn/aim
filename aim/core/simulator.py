@@ -18,7 +18,7 @@ class Simulator:
     def __init__(self,
                  max_ticks: int = 1000,
                  random_seed: int = 42,
-                 spaces: Optional[Dict[str, SpaceManager]] = None,
+                 spaces: Optional[Dict[str, SpaceManager]] = {},
                  viewer = None):
         self.max_ticks = max_ticks
         self.current_tick = 0

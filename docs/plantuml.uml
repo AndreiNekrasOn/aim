@@ -1,0 +1,138 @@
+'https://www.plantuml.com/plantuml/svg/dLLTRoet47tVNp7YvOAQKFKLgT4bPDMxAY6tWUIXLrV8U0TYuRLNjfU4jldlNNlNODQ4VkGXo6UEv-ECP_QpDaIPgk399_Z2SWGiIhE70eiLAWrhgO1o908LS2ctoKl4IUgRFzi_c3myfd3_SFSqJHiaAGdTaWr2Zx1YIAN27loP092LDefGKxicMiCjbtJh300_WC0tirnPQDHOMjoGBVPhPyBe4KoPDjzkYSQn1RuFMWw-8QqCzktvFKd01_34Gn2MZq0RrPvAgPbXKenWKPKSlwsv9EOAtC_tbhCiKUHCR9Qu2rBGHdb2DbkaZ-byaTujirbibcA9mg1gIkk71Gu2YdNUT_zTWjw41JEHiLFbd1KL9qQgGvKko44jU_3PdDVHMtL9A2uB8cgQ6i7S7k-RKyjGbUWFFDjWwHMFUXlUFUHLo1qkNGfDGqV73bsrmTi6NS5mEFI1DcYMlbMNBtfjte-FytRwCFbrVk5vDcAv1-fpbvMYw7GBH1RRKsGYnGxtKfsYsVhqV8USx4-XUxdhEYyvCntebHdwSehzGapducyLLjXDgrWnqG4VKHl5gC5yh93CxUX_O4j5Rhlv2UhULMj2JQMOs82kLgrejV4WNn5o6WNFgnFZwHiptLQbiqMsoD9BpK9Xc65es_KV4sd1S0duCqUnCI-ZPkuFw2lBOr2NY7a4MZtFxn1FoPb2UddLl2T1rejAYGLPSGpILj8Gws9vDWaYDXn3yBqhx_phU79HN5sV_e-qyQp_yxJJzkvnu7Ec3H7Krp3mHOIhRYOdadEccHGkwB_RB3laaZApRxMlGnaVfAlHSpP_6a-ptyUBx67cfUhBqkfE-E2SQZkcAyBP7wutLg107YqvFZDyHNMSVc9ABWrdgzOGH7zCfoxm_4lsTTvWrfY95rJCYPC4kmckh_-wQJ-LTZr5eEzFPCZM4UJsL8JQLHM1Rbj5QB2mGjZkh0YqQoj6myqLucUMLsYEzbTeJCw-KKS8aIHwM34byJFP6hrdsw4wTV-1WX_X3aiKEGgwJuxVPdbz3RsVUgS-E-Q2Y7tFwtdMv1zr4ZNtnddtA8oWqgW_AZyYAroZGa5HnuwZj6j-xahK88Kj_qdNS5tuM6j9cHk4v7Zza7HzhrIIehQPXGuZMbNcnA06BweDyXpE6VIvb1g1oghaJ6m6oScqmN1u0qS5Ho1N6jKETHAEtsNcPnHvLV2_0G00
+@startuml
+' Hide empty members for cleaner look
+hide empty members
+
+' ===== CORE MODULE =====
+package "aim.core" {
+  abstract class Block {
+    + next_block: Block
+    + take(agents: List[BaseAgent])
+    + execute()
+  }
+
+  class BaseAgent {
+    + id: str
+    + position: Tuple[float, float]
+    + _pending_events: List[str]
+    + INTERESTED_IN: List[str]
+    + on_enter_block(block: Block)
+    + on_event(event: str)
+    + emit_event(event: str)
+  }
+
+  class Simulator {
+    + blocks: List[Block]
+    + agents: List[BaseAgent]
+    + space_manager: SpaceManager
+    + run()
+    + step()
+  }
+
+  abstract class SpaceManager {
+    + move_agent(agent: BaseAgent, space_id: str, ...)
+    + get_position(agent: BaseAgent, space_id: str)
+  }
+}
+
+' ===== BLOCKS MODULE =====
+package "aim.blocks" {
+  class SourceBlock
+  class SinkBlock
+  class ConveyorBlock
+  class IfBlock
+  class DelayBlock
+  class MoveBlock
+  class SplitBlock
+  class SwitchBlock
+  class GateBlock
+  class QueueBlock
+  class CombineBlock
+  class RestrictedAreaStart
+  class RestrictedAreaEnd
+
+  ' Manufacturing subpackage
+  package "manufacturing" {
+    class ConveyorBlock
+    class ConveyorExit
+  }
+}
+
+' ===== ENTITIES MODULE =====
+package "aim.entities" {
+  package "manufacturing" {
+    class Conveyor {
+      + id: str
+      + length: float
+      + width: float
+      + speed: float
+      + start: Tuple[float, float]
+      + direction: Tuple[float, float]
+    }
+
+    class TurnTable {
+      + rotation_speed: float
+      + angle: float
+    }
+  }
+}
+
+' ===== SPACES MODULE =====
+package "aim.spaces" {
+  package "manufacturing" {
+    class ConveyorSpaceManager {
+      + move_agent(agent: BaseAgent, conveyor_id: str, distance: float)
+    }
+  }
+
+  class NoCollisionSpace {
+    + move_agent(agent: BaseAgent, velocity: Tuple, dt: float)
+  }
+}
+
+' ===== VISUALIZATION MODULE (optional) =====
+package "aim.visualization" {
+  class ConsoleViewer
+  class MatplotlibViewer
+}
+
+' ===== RELATIONSHIPS =====
+
+' Inheritance
+SourceBlock --|> Block
+SinkBlock --|> Block
+ConveyorBlock --|> Block
+IfBlock --|> Block
+DelayBlock --|> Block
+MoveBlock --|> Block
+SplitBlock --|> Block
+SwitchBlock --|> Block
+GateBlock --|> Block
+QueueBlock --|> Block
+CombineBlock --|> Block
+RestrictedAreaStart --|> Block
+RestrictedAreaEnd --|> Block
+
+ConveyorSpaceManager --|> SpaceManager
+NoCollisionSpace --|> SpaceManager
+
+TurnTable --|> Conveyor
+
+' Composition / Dependency
+Simulator o-- "1" SpaceManager
+Simulator o-- "many" Block
+Simulator o-- "many" BaseAgent
+
+ConveyorBlock --> "1" Conveyor : uses
+ConveyorSpaceManager --> "1" Conveyor : references
+ConveyorBlock --> "1" SpaceManager : depends on
+
+' Usage / Association
+Block --> BaseAgent : processes
+SpaceManager --> BaseAgent : updates position
+
+' Visualization (loose coupling)
+ConsoleViewer ..> Simulator : observes
+MatplotlibViewer ..> Simulator : observes
+
+@enduml
