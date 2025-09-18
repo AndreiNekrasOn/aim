@@ -10,6 +10,7 @@ from .restricted_area_end import RestrictedAreaEnd
 from .gate import GateBlock
 from .combine import CombineBlock
 from .split import SplitBlock
+from .switch import SwitchBlock
 
 __all__ = [
     'SourceBlock',
@@ -22,4 +23,5 @@ __all__ = [
     'GateBlock',
     'CombineBlock',
     'SplitBlock',
+    'SwitchBlock'
 ]

@@ -41,11 +41,22 @@ class Matplotlib2DViewer:
                     y = [p[1] for p in entity.points]
                     label = getattr(entity, 'name', 'Conveyor')
                     print(f"[DEBUG] Drawing {label} in space '{space_name}': {list(zip(x, y))}")
-                    self.ax.plot(x, y, 'b-', linewidth=2, label=f"{label} ({space_name})")
-                    self.ax.scatter(x[0], y[0], c='green', s=50, zorder=5, marker='o')  # Start
-                    self.ax.scatter(x[-1], y[-1], c='red', s=50, zorder=5, marker='s')  # End
 
-        self.ax.legend()
+                    # Draw full path line
+                    self.ax.plot(x, y, 'b-', linewidth=2, label=f"{label} ({space_name})")
+
+                    # Mark EVERY point in the path
+                    self.ax.scatter(x, y, c='blue', s=30, zorder=4, marker='x', alpha=0.7)
+
+                    # Highlight start and end
+                    self.ax.scatter(x[0], y[0], c='green', s=50, zorder=5, marker='o', label=f"Start {label}")
+                    self.ax.scatter(x[-1], y[-1], c='red', s=50, zorder=5, marker='s', label=f"End {label}")
+
+        # Avoid duplicate labels
+        handles, labels = self.ax.get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        self.ax.legend(by_label.values(), by_label.keys())
+
         self._conveyors_drawn = True
 
     def render_tick(self, tick: int):
