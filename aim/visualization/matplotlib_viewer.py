@@ -51,15 +51,23 @@ class Matplotlib2DViewer:
     def render_tick(self, tick: int):
         """Update visualization — draw conveyors once, then update agents."""
         try:
-            # Draw conveyors if not done yet
             if not self._conveyors_drawn:
                 self._draw_conveyors()
 
-            # Clear only agent-related elements
+            # Clear only agent-related elements — safely
             if self.agent_scatter:
-                self.agent_scatter.remove()
+                try:
+                    self.agent_scatter.remove()
+                except ValueError:
+                    # Artist already removed — ignore
+                    pass
+                self.agent_scatter = None
+
             for ann in self.agent_annotations:
-                ann.remove()
+                try:
+                    ann.remove()
+                except ValueError:
+                    pass
             self.agent_annotations.clear()
 
             # Draw agents
@@ -69,7 +77,12 @@ class Matplotlib2DViewer:
 
             for agent in getattr(self.simulator, 'agents', []):
                 state = agent.space_state
-                if state and "entity" in state and "progress_on_entity" in state:
+                if state and "position" in state:
+                    pos = state["position"]
+                    agent_x.append(pos[0])
+                    agent_y.append(pos[1])
+                    agent_labels.append(f"A{id(agent) % 1000}")
+                elif state and "entity" in state and "progress_on_entity" in state:
                     entity = state["entity"]
                     if hasattr(entity, 'get_position_at_progress'):
                         progress = state["progress_on_entity"]
@@ -97,7 +110,7 @@ class Matplotlib2DViewer:
                     )
                     self.agent_annotations.append(ann)
 
-            self.ax.set_title(f"Conveyor System - Tick {tick}")
+            self.ax.set_title(f"Simulation - Tick {tick}")
             plt.pause(1)
 
         except Exception as e:
