@@ -15,12 +15,16 @@ class Simulator:
     Manages ticks, agents, blocks, agent-emitted events, and scheduled timed events.
     """
 
-    def __init__(self, max_ticks: int = 1000, random_seed: int = 42, space: Optional[SpaceManager] = None, viewer = None):
+    def __init__(self,
+                 max_ticks: int = 1000,
+                 random_seed: int = 42,
+                 spaces: Optional[Dict[str, SpaceManager]] = None,
+                 viewer = None):
         self.max_ticks = max_ticks
         self.current_tick = 0
         self.random_seed = random_seed
         random.seed(self.random_seed)
-        self.space = space  # ← ADD THIS
+        self.spaces = spaces
 
         self.blocks: List[BaseBlock] = []
         self.agents: List[BaseAgent] = []
@@ -73,16 +77,17 @@ class Simulator:
         """
         Execute one simulation tick in this order:
         1. Execute scheduled events (callbacks).
-        2. Update space (move agents, check collisions).
+        2. Update all spaces (move agents, check collisions).
         3. Deliver pending agent events (from last tick).
         4. Advance all blocks (call ._tick()).
         5. Collect new agent-emitted events (for delivery next tick).
         """
         self._process_scheduled_events()
 
-        # Update space — move agents, check collisions
-        if hasattr(self, 'space') and self.space is not None:
-            self.space.update(delta_time=1.0)
+        # Update all spaces — move agents, check collisions
+        if self.spaces:
+            for space_name, space in self.spaces.items():
+                space.update(delta_time=1.0)
 
         self._deliver_pending_events()
 
@@ -94,6 +99,7 @@ class Simulator:
         if hasattr(self, 'viewer') and self.viewer is not None:
             if hasattr(self.viewer, 'render_tick'):
                 self.viewer.render_tick(self.current_tick)
+
 
     def _process_scheduled_events(self) -> None:
         """Execute all callbacks scheduled for current_tick in randomized order."""
@@ -158,3 +164,23 @@ class Simulator:
     def remove_agent(self, agent: BaseAgent) -> None:
         """Manually remove an agent from simulation."""
         self.agents.remove(agent)
+
+    def add_space(self, name: str, space: SpaceManager) -> None:
+        """
+        Register a named space.
+        :param name: Space name.
+        :param space: SpaceManager instance.
+        """
+        if not name or not isinstance(name, str):
+            raise ValueError("Space name must be non-empty string.")
+        self.spaces[name] = space
+
+    def get_space(self, name: str) -> SpaceManager:
+        """
+        Get space by name. Raises KeyError if not found.
+        :param name: Space name.
+        :return: SpaceManager instance.
+        """
+        if name not in self.spaces:
+            raise KeyError(f"Space '{name}' not found.")
+        return self.spaces[name]

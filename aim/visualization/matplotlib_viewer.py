@@ -20,28 +20,30 @@ class Matplotlib2DViewer:
         self._conveyors_drawn = False
 
     def _draw_conveyors(self):
-        """Draw all conveyors from space — called once, lazily."""
+        """Draw all conveyors from all spaces — called once, lazily."""
         if self._conveyors_drawn:
             return
 
         print("[DEBUG] Drawing conveyors (lazy init)...")
-        space = getattr(self.simulator, 'space', None)
-        if space is None:
-            print("[DEBUG] No space found")
+        spaces = getattr(self.simulator, 'spaces', {})
+        if not spaces:
+            print("[DEBUG] No spaces found")
             return
 
-        entities = getattr(space, '_entity_agents', {})
-        print(f"[DEBUG] Found {len(entities)} entities in space")
+        for space_name, space in spaces.items():
+            print(f"[DEBUG] Processing space: {space_name}")
+            entities = getattr(space, '_entity_agents', {})
+            print(f"[DEBUG] Found {len(entities)} entities in space '{space_name}'")
 
-        for entity in entities.keys():
-            if isinstance(entity, Conveyor) and hasattr(entity, 'points') and len(entity.points) >= 2:
-                x = [p[0] for p in entity.points]
-                y = [p[1] for p in entity.points]
-                label = getattr(entity, 'name', 'Conveyor')
-                print(f"[DEBUG] Drawing {label}: {list(zip(x, y))}")
-                self.ax.plot(x, y, 'b-', linewidth=2, label=label)
-                self.ax.scatter(x[0], y[0], c='green', s=50, zorder=5, marker='o')  # Start
-                self.ax.scatter(x[-1], y[-1], c='red', s=50, zorder=5, marker='s')  # End
+            for entity in entities.keys():
+                if isinstance(entity, Conveyor) and hasattr(entity, 'points') and len(entity.points) >= 2:
+                    x = [p[0] for p in entity.points]
+                    y = [p[1] for p in entity.points]
+                    label = getattr(entity, 'name', 'Conveyor')
+                    print(f"[DEBUG] Drawing {label} in space '{space_name}': {list(zip(x, y))}")
+                    self.ax.plot(x, y, 'b-', linewidth=2, label=f"{label} ({space_name})")
+                    self.ax.scatter(x[0], y[0], c='green', s=50, zorder=5, marker='o')  # Start
+                    self.ax.scatter(x[-1], y[-1], c='red', s=50, zorder=5, marker='s')  # End
 
         self.ax.legend()
         self._conveyors_drawn = True

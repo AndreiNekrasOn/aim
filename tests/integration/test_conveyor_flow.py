@@ -23,7 +23,12 @@ def conveyor_setup():
 def test_conveyor_multiple_agents():
     """Test multiple agents can enter conveyor without collision."""
     conveyor, space = conveyor_setup()
-    sim = Simulator(max_ticks=35, space=space) # PASS SPACE TO SIMULATOR
+    sim = Simulator(
+            max_ticks=35,
+            spaces={
+                "main_line": space
+                },
+            )
 
     NAME = 1
     class Box(BaseAgent):
@@ -43,12 +48,12 @@ def test_conveyor_multiple_agents():
     queue.on_exit = lambda agent: print(f"Queue. Tick[{sim.current_tick}] Agent[{agent.name}]")
     conveyor_block = ConveyorBlock(
         simulator=sim,
-        space=space,
+        space_name="main_line",
         start_entity=conveyor,
         end_entity=conveyor  # Same for simplicity
     )
     delay = DelayBlock(simulator=sim, delay_ticks=1)
-    conveyor_exit = ConveyorExit(simulator=sim, space=space)
+    conveyor_exit = ConveyorExit(simulator=sim, space_name="main_line")
     sink = SinkBlock(simulator=sim)
 
     # Wire
@@ -66,7 +71,12 @@ def test_conveyor_multiple_agents():
 def test_conveyor_blocked_by_gate():
     """Test conveyor blocks when downstream is blocked."""
     conveyor, space = conveyor_setup()
-    sim = Simulator(max_ticks=20, space=space)
+    sim = Simulator(
+            max_ticks=20,
+            spaces={
+                "main_line": space
+                },
+            )
 
     NAME = 1
     class Box(BaseAgent):
@@ -85,7 +95,7 @@ def test_conveyor_blocked_by_gate():
     queue1 = QueueBlock(simulator=sim)
     conveyor_block = ConveyorBlock(
         simulator=sim,
-        space=space,
+        space_name="main_line",
         start_entity=conveyor,
         end_entity=conveyor
     )
@@ -133,7 +143,9 @@ def test_two_conveyors_in_one_block():
     space.register_entity(conv2)
 
     # Setup simulator
-    sim = Simulator(max_ticks=30, space=space)
+    sim = Simulator(max_ticks=30, spaces={
+        "main_line": space,
+        })
 
     # Define agent
     class Box(BaseAgent):
@@ -150,11 +162,11 @@ def test_two_conveyors_in_one_block():
     queue = QueueBlock(simulator=sim)
     conveyor_block = ConveyorBlock(
         simulator=sim,
-        space=space,
+        space_name="main_line",
         start_entity=conv1,   # Start on first conveyor
         end_entity=conv2     # End on second conveyor
     )
-    conveyor_exit = ConveyorExit(simulator=sim, space=space)
+    conveyor_exit = ConveyorExit(simulator=sim, space_name="main_line")
     sink = SinkBlock(simulator=sim)
 
     # Debug prints
@@ -218,7 +230,7 @@ def test_pathfinding_chooses_fastest_path():
         space.register_entity(entity)
 
     # Setup simulator
-    sim = Simulator(max_ticks=20, space=space)
+    sim = Simulator(max_ticks=20, spaces={"main_line": space})
 
     class Box(BaseAgent):
         def __init__(self):
@@ -228,10 +240,9 @@ def test_pathfinding_chooses_fastest_path():
     # Blocks
     source = SourceBlock(sim, Box, lambda tick: 1 if tick == 1 else 0)
     queue = QueueBlock(sim)
-    conveyor_block = ConveyorBlock(sim, space, start_entity=A, end_entity=D)
-    conveyor_exit = ConveyorExit(sim, space)
+    conveyor_block = ConveyorBlock(sim, space_name="main_line", start_entity=A, end_entity=D)
+    conveyor_exit = ConveyorExit(sim, space_name="main_line")
     sink = SinkBlock(sim)
-
 
     # Debug: capture path taken
     path_taken = []

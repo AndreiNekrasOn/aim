@@ -10,39 +10,52 @@ from aim.core.simulator import Simulator
 class ConveyorBlock(BaseBlock):
     """
     Block that moves agents through a ConveyorSpace from start_entity to end_entity.
-    Does NOT eject agents when movement is complete — must use ConveyorExit.
-
-    Enforces one agent entry per tick — subsequent agents in same tick are rejected.
-    This prevents within-tick collision races and matches discrete-event semantics.
+    Does NOT eject agents when movement is complete -- must use ConveyorExit.
+    Enforces one agent entry per tick.
     """
 
     def __init__(
         self,
-        simulator: 'Simulator',
-        space: SpaceManager,
+        simulator: Simulator,
+        space_name: str,
         start_entity: Any,
         end_entity: Any
     ):
+        """
+        Initialize ConveyorBlock.
+        :param simulator: Simulator instance.
+        :param space_name: Name of space to use (must be registered in simulator).
+        :param start_entity: Starting spatial entity.
+        :param end_entity: Ending spatial entity.
+        """
         super().__init__(simulator)
-        self.space = space
+        self.space_name = space_name
         self.start_entity = start_entity
         self.end_entity = end_entity
-
         self._agent_entered_this_tick = False
 
+        # Get space by name
+        self.space = simulator.get_space(space_name)
+
         # Validate space supports entity registration
-        if not hasattr(space, 'is_entity_registered'):
-            raise TypeError(f"Space {type(space).__name__} does not support entity registration. "
-                            f"Expected a ConveyorSpace or compatible SpaceManager.")
+        if not hasattr(self.space, 'is_entity_registered'):
+            raise TypeError(
+                f"Space {type(self.space).__name__} does not support entity registration. "
+                "Expected a ConveyorSpace or compatible SpaceManager."
+            )
 
         # Validate entities are registered
-        if not space.is_entity_registered(start_entity):
-            raise ValueError(f"start_entity {start_entity} is not registered with the space. "
-                             f"Did you forget to call space.register_entity(start_entity)?")
+        if not self.space.is_entity_registered(start_entity):
+            raise ValueError(
+                f"start_entity {start_entity} is not registered with space '{space_name}'. "
+                "Did you forget to call space.register_entity(start_entity)?"
+            )
 
-        if not space.is_entity_registered(end_entity):
-            raise ValueError(f"end_entity {end_entity} is not registered with the space. "
-                             f"Did you forget to call space.register_entity(end_entity)?")
+        if not self.space.is_entity_registered(end_entity):
+            raise ValueError(
+                f"end_entity {end_entity} is not registered with space '{space_name}'. "
+                "Did you forget to call space.register_entity(end_entity)?"
+            )
 
     def take(self, agent: BaseAgent) -> None:
         """

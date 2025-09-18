@@ -7,24 +7,25 @@ from aim.core.simulator import Simulator
 
 class ConveyorExit(BaseBlock):
     """
-    Block that removes agents from space.
-    Must be used after ConveyorBlock to free space.
+    Removes agents from space (frees occupancy).
+    Does not unregister agents -- unregistration is handled by ConveyorBlock.
     """
 
-    def __init__(self, simulator: 'Simulator', space: SpaceManager):
+    def __init__(self, simulator: Simulator, space_name: str):
+        """
+        Initialize ConveyorExit.
+        :param simulator: Simulator instance.
+        :param space_name: Name of space to use.
+        """
         super().__init__(simulator)
-        self.space = space
+        self.space = simulator.get_space(space_name)
+        self.space_name = space_name
 
     def take(self, agent: BaseAgent) -> None:
         """
-        Remove agent from space.
-        Rejects if agent is not registered in space.
+        Pass agent to next block. Does not interact with space.
         """
         agent._enter_block(self)
         if self.on_enter is not None:
             self.on_enter(agent)
-
-        if not self.space.unregister(agent):
-            raise RuntimeError(f"ConveyorExit: agent {id(agent)} not in space")
-
         self._eject(agent)

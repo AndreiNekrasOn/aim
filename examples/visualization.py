@@ -9,6 +9,7 @@ from aim.spaces.manufacturing.conveyor_space import ConveyorSpace
 from aim.entities.manufacturing.conveyor import Conveyor
 from aim.visualization.console_viewer import ConsoleViewer
 from aim.blocks.manufacturing.conveyor_block import ConveyorBlock
+from aim.blocks import DelayBlock
 
 
 def create_viewer(viz_type: str, simulator):
@@ -48,7 +49,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     space = ConveyorSpace()
-    sim = Simulator(max_ticks=30, space=space)
+    sim = Simulator(max_ticks=30, spaces={"main_line": space})
 
     # Create viewer based on argument
     viewer = create_viewer(args.viz, sim)
@@ -57,15 +58,17 @@ if __name__ == '__main__':
     # Build simulation
     source = SourceBlock(sim, agent_class=Box)
     A = Conveyor([(0.0, 0.0, 0.0), (0.0, 10.0, 0.0)], speed=1, name='A')
-    B = Conveyor([(0.0, 10.0, 0.0), (00.0, 30.0, 0.0)], speed=2, name='B')
+    B = Conveyor([(0.0, 10.0, 0.0), (10.0, 30.0, 0.0)], speed=2, name='B')
     A.connections.append(B)
     space.register_entity(A)
     space.register_entity(B)
-    conv = ConveyorBlock(sim, space, A, B)
+    conv = ConveyorBlock(sim, start_entity=A, end_entity=B, space_name="main_line")
+    delay = DelayBlock(sim, delay_ticks=5)
     sink = SinkBlock(sim)
 
     source.connect(conv)
-    conv.connect(sink)
+    conv.connect(delay)
+    delay.connect(sink)
 
     # Run
     sim.run()
