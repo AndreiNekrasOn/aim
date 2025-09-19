@@ -1,6 +1,6 @@
 # entities/manufacturing/conveyor.py
 
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Any
 from aim.core.space import SpatialEntity
 
 Point3D = Tuple[float, float, float]
@@ -69,3 +69,14 @@ class Conveyor(SpatialEntity):
             accumulated += seg_len
 
         return self.points[-1]
+
+    def __lt__(self, other: Any) -> bool:
+        """
+        For heapq — break ties by name or id.
+        """
+        if not isinstance(other, Conveyor):
+            return NotImplemented
+        # Compare by name first, then id for stability
+        if self.name != other.name:
+            return self.name < other.name
+        return id(self) < id(other)
