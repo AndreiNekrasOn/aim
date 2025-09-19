@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+from matplotlib.cm import get_cmap
+from matplotlib.colors import to_hex
 import sys
 from aim.entities.manufacturing.conveyor import Conveyor
 
@@ -24,33 +26,42 @@ class Matplotlib2DViewer:
         if self._conveyors_drawn:
             return
 
-        # print("[DEBUG] Drawing conveyors (lazy init)...")
         spaces = getattr(self.simulator, 'spaces', {})
         if not spaces:
             print("[DEBUG] No spaces found")
             return
 
-        for space_name, space in spaces.items():
-            print(f"[DEBUG] Processing space: {space_name}")
-            entities = getattr(space, '_entity_agents', {})
-            print(f"[DEBUG] Found {len(entities)} entities in space '{space_name}'")
+        # Create a color map — assign color based on conveyor name
 
+        # Use tab20 for up to 20 distinct colors, then cycle
+        cmap = get_cmap('tab20')
+        color_cache = {}
+
+        for space_name, space in spaces.items():
+            entities = getattr(space, '_entity_agents', {})
             for entity in entities.keys():
                 if isinstance(entity, Conveyor) and hasattr(entity, 'points') and len(entity.points) >= 2:
                     x = [p[0] for p in entity.points]
                     y = [p[1] for p in entity.points]
                     label = getattr(entity, 'name', 'Conveyor')
-                    # print(f"[DEBUG] Drawing {label} in space '{space_name}': {list(zip(x, y))}")
 
-                    # Draw full path line
-                    self.ax.plot(x, y, 'b-', linewidth=2, label=f"{label} ({space_name})")
+                    # Generate consistent color based on name
+                    if label not in color_cache:
+                        # Hash name to index, mod 20 for tab20
+                        hash_val = hash(label) % 20
+                        color = to_hex(cmap(hash_val))
+                        color_cache[label] = color
+                    color = color_cache[label]
+
+                    # Draw full path line with unique color
+                    self.ax.plot(x, y, color=color, linewidth=2, label=f"{label} ({space_name})")
 
                     # Mark EVERY point in the path
-                    self.ax.scatter(x, y, c='blue', s=30, zorder=4, marker='x', alpha=0.7)
+                    self.ax.scatter(x, y, c=color, s=30, zorder=4, marker='x', alpha=0.7)
 
                     # Highlight start and end
-                    self.ax.scatter(x[0], y[0], c='green', s=50, zorder=5, marker='o', label=f"Start {label}")
-                    self.ax.scatter(x[-1], y[-1], c='red', s=50, zorder=5, marker='s', label=f"End {label}")
+                    self.ax.scatter(x[0], y[0], c='green', s=50, zorder=5, marker='o')
+                    self.ax.scatter(x[-1], y[-1], c='red', s=50, zorder=5, marker='s')
 
         # Avoid duplicate labels
         handles, labels = self.ax.get_legend_handles_labels()
