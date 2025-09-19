@@ -20,3 +20,6 @@ def test_long_running():
     end_mem = get_memory_usage()
     assert end_mem - start_mem < 10 * 1024 * 1024  # < 10MB growth
     assert sink.count == 1000
+
+if __name__ == '__main__':
+    test_long_running()

@@ -24,7 +24,7 @@ class Matplotlib2DViewer:
         if self._conveyors_drawn:
             return
 
-        print("[DEBUG] Drawing conveyors (lazy init)...")
+        # print("[DEBUG] Drawing conveyors (lazy init)...")
         spaces = getattr(self.simulator, 'spaces', {})
         if not spaces:
             print("[DEBUG] No spaces found")
@@ -40,7 +40,7 @@ class Matplotlib2DViewer:
                     x = [p[0] for p in entity.points]
                     y = [p[1] for p in entity.points]
                     label = getattr(entity, 'name', 'Conveyor')
-                    print(f"[DEBUG] Drawing {label} in space '{space_name}': {list(zip(x, y))}")
+                    # print(f"[DEBUG] Drawing {label} in space '{space_name}': {list(zip(x, y))}")
 
                     # Draw full path line
                     self.ax.plot(x, y, 'b-', linewidth=2, label=f"{label} ({space_name})")

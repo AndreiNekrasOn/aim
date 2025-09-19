@@ -133,21 +133,39 @@ class Simulator:
         self._pending_events.clear()
 
     def _collect_emitted_events(self) -> None:
-        """Gather all events emitted this tick and stage for next tick delivery."""
-        emitted_events = []
+        """
+        Collect events from all agents and deliver to subscribers.
+        Optimized for high agent count.
+        """
+        # Track processed agents to avoid double-counting
+        processed_agents = set()
 
+        # Process agents from self.agents
         for agent in self.agents:
+            if agent in processed_agents:
+                continue
+            if not agent._emitted_events_this_tick:
+                continue
             emitted = agent._collect_emitted_events()
-            emitted_events.extend(emitted)
+            if emitted:
+                for event in emitted:
+                    for sub_agent in self._event_subscriptions.get(event, set()):
+                        self._pending_events[sub_agent].append(event)
+            processed_agents.add(agent)
 
+        # Process agents from blocks
         for block in self.blocks:
             for agent in block.agents:
+                if agent in processed_agents:
+                    continue
+                if not agent._emitted_events_this_tick:
+                    continue
                 emitted = agent._collect_emitted_events()
-                emitted_events.extend(emitted)
-
-        for event in emitted_events:
-            for agent in self._event_subscriptions.get(event, set()):
-                self._pending_events[agent].append(event)
+                if emitted:
+                    for event in emitted:
+                        for sub_agent in self._event_subscriptions.get(event, set()):
+                            self._pending_events[sub_agent].append(event)
+                processed_agents.add(agent)
 
     def stop(self) -> None:
         """Stop simulation at end of current tick."""

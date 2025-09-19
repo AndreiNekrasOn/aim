@@ -101,7 +101,7 @@ class ConveyorSpace(SpaceManager):
         if path is None:
             print(f"[SPACE] NO PATH FOUND from {start_entity} to {end_entity}")
             sys.exit(1)  # You should see this if no path
-        # print(f"[SPACE] Path found: {[getattr(e, 'name', str(e)) for e in path]}")
+        print(f"[SPACE] Path found: {[getattr(e, 'name', str(e)) for e in path]}")
 
         # Compute total time for path
         total_time = 0.0
