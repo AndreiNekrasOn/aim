@@ -30,8 +30,6 @@ class SwitchBlock(BaseBlock):
         :param key: Hashable key (e.g., str, int, Conveyor).
         :param block: Target block for this key.
         """
-        if not isinstance(key, Hashable):
-            raise TypeError(f"Key {key} is not hashable.")
         self._output_map[key] = block
 
     def take(self, agent: BaseAgent) -> None:

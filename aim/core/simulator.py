@@ -8,6 +8,8 @@ from .agent import BaseAgent
 from .block import BaseBlock
 from .space import SpaceManager
 
+from tqdm import tqdm
+
 
 class Simulator:
     """
@@ -28,8 +30,8 @@ class Simulator:
 
         self.blocks: List[BaseBlock] = []
         self.agents: List[BaseAgent] = []
-
         self.viewer = viewer
+        self.event_processors: List[Any] = []
 
         self._event_subscriptions: Dict[str, Set[BaseAgent]] = defaultdict(set)
         self._pending_events: Dict[BaseAgent, List[str]] = defaultdict(list)
@@ -67,9 +69,9 @@ class Simulator:
 
     def run(self) -> None:
         """Run simulation until max_ticks reached or manually stopped."""
-        while self.current_tick < self.max_ticks:
+        for self.current_tick in tqdm(range(0, self.max_ticks)):
+        # for _ in tqdm(range(0, self.max_ticks)):
             self.tick()
-            self.current_tick += 1
             if self.max_ticks == 0:  # manual stop
                 break
 
@@ -93,6 +95,9 @@ class Simulator:
 
         for block in self.blocks:
             block._tick()
+        for processor in self.event_processors:
+            if hasattr(processor, '_tick'):
+                processor._tick()
 
         self._collect_emitted_events()
 

@@ -145,7 +145,7 @@ class IsometricMatplotlibViewer:
                     self.agent_annotations.append(ann)
 
             self.ax.set_title(f"Isometric View - Tick {tick}")
-            plt.pause(1)
+            plt.pause(0.0001)
 
         except Exception as e:
             print(f"[IsometricViewer] Error at tick {tick}: {e}", file=sys.stderr)

@@ -45,11 +45,13 @@ class DelayBlock(BaseBlock):
         Internal: eject agent to next block.
         Called by scheduled event.
         """
-        # Safety: agent may have been removed (e.g., sim stopped)
         if agent not in self._scheduled_ejections:
             return
 
         del self._scheduled_ejections[agent]
+
+        if self.on_exit is not None:
+            self.on_exit(agent)
 
         self._eject(agent)
 
