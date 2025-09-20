@@ -1,138 +1,84 @@
-'https://www.plantuml.com/plantuml/svg/dLLTRoet47tVNp7YvOAQKFKLgT4bPDMxAY6tWUIXLrV8U0TYuRLNjfU4jldlNNlNODQ4VkGXo6UEv-ECP_QpDaIPgk399_Z2SWGiIhE70eiLAWrhgO1o908LS2ctoKl4IUgRFzi_c3myfd3_SFSqJHiaAGdTaWr2Zx1YIAN27loP092LDefGKxicMiCjbtJh300_WC0tirnPQDHOMjoGBVPhPyBe4KoPDjzkYSQn1RuFMWw-8QqCzktvFKd01_34Gn2MZq0RrPvAgPbXKenWKPKSlwsv9EOAtC_tbhCiKUHCR9Qu2rBGHdb2DbkaZ-byaTujirbibcA9mg1gIkk71Gu2YdNUT_zTWjw41JEHiLFbd1KL9qQgGvKko44jU_3PdDVHMtL9A2uB8cgQ6i7S7k-RKyjGbUWFFDjWwHMFUXlUFUHLo1qkNGfDGqV73bsrmTi6NS5mEFI1DcYMlbMNBtfjte-FytRwCFbrVk5vDcAv1-fpbvMYw7GBH1RRKsGYnGxtKfsYsVhqV8USx4-XUxdhEYyvCntebHdwSehzGapducyLLjXDgrWnqG4VKHl5gC5yh93CxUX_O4j5Rhlv2UhULMj2JQMOs82kLgrejV4WNn5o6WNFgnFZwHiptLQbiqMsoD9BpK9Xc65es_KV4sd1S0duCqUnCI-ZPkuFw2lBOr2NY7a4MZtFxn1FoPb2UddLl2T1rejAYGLPSGpILj8Gws9vDWaYDXn3yBqhx_phU79HN5sV_e-qyQp_yxJJzkvnu7Ec3H7Krp3mHOIhRYOdadEccHGkwB_RB3laaZApRxMlGnaVfAlHSpP_6a-ptyUBx67cfUhBqkfE-E2SQZkcAyBP7wutLg107YqvFZDyHNMSVc9ABWrdgzOGH7zCfoxm_4lsTTvWrfY95rJCYPC4kmckh_-wQJ-LTZr5eEzFPCZM4UJsL8JQLHM1Rbj5QB2mGjZkh0YqQoj6myqLucUMLsYEzbTeJCw-KKS8aIHwM34byJFP6hrdsw4wTV-1WX_X3aiKEGgwJuxVPdbz3RsVUgS-E-Q2Y7tFwtdMv1zr4ZNtnddtA8oWqgW_AZyYAroZGa5HnuwZj6j-xahK88Kj_qdNS5tuM6j9cHk4v7Zza7HzhrIIehQPXGuZMbNcnA06BweDyXpE6VIvb1g1oghaJ6m6oScqmN1u0qS5Ho1N6jKETHAEtsNcPnHvLV2_0G00
+'//www.plantuml.com/plantuml/png/bLJ1RXGn3BtdAw9UE1LLSEE0AX2_m0MXaMV6tRKsSOROsNP1_3lPh9YrPjJLz1ZxEU_bsSwZA6GjCJWv44-G8Vf0Z7gQqAUi-sGId4OKdFo71nFCm8TpyEE3SnCC1zYXlmEAT_wFytwEz24D1xa4lVynfDWJu_lfzFCI6370wNhSWPeaFNMj_Xg9wMZolmeMSnHY0vLKyc2pKo0rnsVIOT_EDM0KH-3o18EMJBpxBxn9voEUKZQIbXbyCGn_5_Tc5CqqA8uTP0HpyoBJjTvOWYK0UJGqZSeG3IdZR7YDi7drmawXM09eojOckBYskXTPIGddPcvsp3wbWhXJw0FUU47JS1qQJjsGGY2Xn9tLzmODYxervv6aGA3Ve9N5p2jB2jWT2P_Hk4II8fvxiif4q2aa3TIRL6EhVE_yrvJHPmoDHlOqYRlsoD_VVpOzyfzy4HHd8WrWkjP06NSaYXb7J-nCUgwO7r_H4RWIYZF1XfbLL8pcQejuKL0yg_vo5h2KRHV2o5jQRXwos9GD5MQBrog7ZA0LD2_-6WAzfDoBC-k-DXbV57aKP_-R6x3vpxg1cR-c6vZgwpTMqjDhnjusoBJTsRNQN5JvlzkXNykmi__w-ALUC1zHdDsApJLsNxOMFIAF9OP_
+
 @startuml
-' Hide empty members for cleaner look
-hide empty members
+skinparam linetype ortho
+skinparam nodesep 20
+skinparam ranksep 30
 
-' ===== CORE MODULE =====
-package "aim.core" {
-  abstract class Block {
-    + next_block: Block
-    + take(agents: List[BaseAgent])
-    + execute()
-  }
+package "aim" {
+  package "blocks" {
+    [combine.py]
+    [delay.py]
+    [gate.py]
+    [if_block.py]
+    [move.py]
+    [queue.py]
+    [sink.py]
+    [source.py]
+    [split.py]
+    [switch.py]
 
-  class BaseAgent {
-    + id: str
-    + position: Tuple[float, float]
-    + _pending_events: List[str]
-    + INTERESTED_IN: List[str]
-    + on_enter_block(block: Block)
-    + on_event(event: str)
-    + emit_event(event: str)
-  }
-
-  class Simulator {
-    + blocks: List[Block]
-    + agents: List[BaseAgent]
-    + space_manager: SpaceManager
-    + run()
-    + step()
-  }
-
-  abstract class SpaceManager {
-    + move_agent(agent: BaseAgent, space_id: str, ...)
-    + get_position(agent: BaseAgent, space_id: str)
-  }
-}
-
-' ===== BLOCKS MODULE =====
-package "aim.blocks" {
-  class SourceBlock
-  class SinkBlock
-  class ConveyorBlock
-  class IfBlock
-  class DelayBlock
-  class MoveBlock
-  class SplitBlock
-  class SwitchBlock
-  class GateBlock
-  class QueueBlock
-  class CombineBlock
-  class RestrictedAreaStart
-  class RestrictedAreaEnd
-
-  ' Manufacturing subpackage
-  package "manufacturing" {
-    class ConveyorBlock
-    class ConveyorExit
-  }
-}
-
-' ===== ENTITIES MODULE =====
-package "aim.entities" {
-  package "manufacturing" {
-    class Conveyor {
-      + id: str
-      + length: float
-      + width: float
-      + speed: float
-      + start: Tuple[float, float]
-      + direction: Tuple[float, float]
+    package "manufacturing" {
+      [conveyor_block.py]
+      [conveyor_exit.py]
     }
 
-    class TurnTable {
-      + rotation_speed: float
-      + angle: float
-    }
-  }
-}
-
-' ===== SPACES MODULE =====
-package "aim.spaces" {
-  package "manufacturing" {
-    class ConveyorSpaceManager {
-      + move_agent(agent: BaseAgent, conveyor_id: str, distance: float)
+    package "restricted_area" {
+      [restricted_area_start.py]
+      [restricted_area_end.py]
     }
   }
 
-  class NoCollisionSpace {
-    + move_agent(agent: BaseAgent, velocity: Tuple, dt: float)
+  package "core" {
+    [agent.py]
+    [block.py]
+    [simulator.py]
+    [space.py]
+  }
+
+  package "entities" {
+    package "manufacturing" {
+      [conveyor.py]
+      [turn_table.py]
+    }
+  }
+
+  package "spaces" {
+    [no_collision_space.py]
+    package "manufacturing" {
+      [conveyor_space.py]
+    }
+  }
+
+  package "visualization" {
+    [console_viewer.py]
+    [isometric_viewer.py]
+    [matplotlib_viewer.py]
   }
 }
 
-' ===== VISUALIZATION MODULE (optional) =====
-package "aim.visualization" {
-  class ConsoleViewer
-  class MatplotlibViewer
-}
+' Core relationships
+[agent.py] --> [block.py] : uses
+[block.py] --> [simulator.py] : registered in
+[simulator.py] --> [space.py] : manages
+[space.py] --> [agent.py] : tracks state
 
-' ===== RELATIONSHIPS =====
+' Block relationships
+[conveyor_block.py] --> [conveyor_space.py] : uses
+[conveyor_exit.py] --> [conveyor_space.py] : uses
+[source.py] --> [agent.py] : creates
+[sink.py] --> [agent.py] : absorbs
+[switch.py] --> [block.py] : extends
+[if_block.py] --> [block.py] : extends
+[delay.py] --> [block.py] : extends
+[queue.py] --> [block.py] : extends
 
-' Inheritance
-SourceBlock --|> Block
-SinkBlock --|> Block
-ConveyorBlock --|> Block
-IfBlock --|> Block
-DelayBlock --|> Block
-MoveBlock --|> Block
-SplitBlock --|> Block
-SwitchBlock --|> Block
-GateBlock --|> Block
-QueueBlock --|> Block
-CombineBlock --|> Block
-RestrictedAreaStart --|> Block
-RestrictedAreaEnd --|> Block
+' Entity relationships
+[conveyor.py] --> [conveyor_space.py] : registered
+[turn_table.py] --> [conveyor_space.py] : registered
 
-ConveyorSpaceManager --|> SpaceManager
-NoCollisionSpace --|> SpaceManager
-
-TurnTable --|> Conveyor
-
-' Composition / Dependency
-Simulator o-- "1" SpaceManager
-Simulator o-- "many" Block
-Simulator o-- "many" BaseAgent
-
-ConveyorBlock --> "1" Conveyor : uses
-ConveyorSpaceManager --> "1" Conveyor : references
-ConveyorBlock --> "1" SpaceManager : depends on
-
-' Usage / Association
-Block --> BaseAgent : processes
-SpaceManager --> BaseAgent : updates position
-
-' Visualization (loose coupling)
-ConsoleViewer ..> Simulator : observes
-MatplotlibViewer ..> Simulator : observes
-
+' Visualization relationships
+[console_viewer.py] --> [simulator.py] : observes
+[isometric_viewer.py] --> [simulator.py] : observes
+[matplotlib_viewer.py] --> [simulator.py] : observes
 @enduml
