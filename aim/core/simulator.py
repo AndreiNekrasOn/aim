@@ -8,7 +8,6 @@ from .agent import BaseAgent
 from .block import BaseBlock
 from .space import SpaceManager
 
-from tqdm import tqdm
 
 
 class Simulator:
@@ -69,8 +68,7 @@ class Simulator:
 
     def run(self) -> None:
         """Run simulation until max_ticks reached or manually stopped."""
-        for self.current_tick in tqdm(range(0, self.max_ticks)):
-        # for _ in tqdm(range(0, self.max_ticks)):
+        for self.current_tick in (range(0, self.max_ticks)):
             self.tick()
             if self.max_ticks == 0:  # manual stop
                 break
