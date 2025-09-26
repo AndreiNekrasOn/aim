@@ -47,6 +47,7 @@ class SwitchBlock(BaseBlock):
             raise RuntimeError(f"SwitchBlock: key_func failed for agent {id(agent)}: {e}")
 
         if key not in self._output_map:
+            print(f"SwitchBlock: no output connected for key: {key}")
             raise RuntimeError(f"SwitchBlock: no output connected for key: {key}")
 
         target_block = self._output_map[key]

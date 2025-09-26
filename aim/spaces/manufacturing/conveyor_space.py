@@ -99,7 +99,7 @@ class ConveyorSpace(SpaceManager):
 
         path = self._find_shortest_path(start_entity, end_entity)
         if path is None:
-            print(f"[SPACE] NO PATH FOUND from {start_entity} to {end_entity}")
+            print(f"[SPACE] NO PATH FOUND from {start_entity.name} to {end_entity.name}")
             sys.exit(1)  # You should see this if no path
         # print(f"[SPACE] Path found: {[getattr(e, 'name', str(e)) for e in path]}")
 
