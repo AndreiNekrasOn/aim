@@ -220,4 +220,6 @@ __marimo__/
 
 proprietary/
 *.prof
-
+.qwen/
+QWEN.md
+experiment_results.csv
