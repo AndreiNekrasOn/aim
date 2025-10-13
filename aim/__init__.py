@@ -20,6 +20,12 @@ from .blocks.restricted_area_end import RestrictedAreaEnd
 from .blocks.gate import GateBlock
 from .blocks.combine import CombineBlock
 from .blocks.split import SplitBlock
+from .blocks.resource.seize_block import SeizeBlock
+from .blocks.resource.release_block import ReleaseBlock
+
+# Resource classes
+from .entities.resource.resource_agent import ResourceAgent
+from .entities.resource.resource_pool import ResourcePool
 
 __all__ = [
     # Core
@@ -42,4 +48,12 @@ __all__ = [
     'GateBlock',
     'CombineBlock',
     'SplitBlock',
+    
+    # Resource Blocks
+    'SeizeBlock',
+    'ReleaseBlock',
+    
+    # Resource Classes
+    'ResourceAgent',
+    'ResourcePool',
 ]
