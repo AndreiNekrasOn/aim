@@ -5,6 +5,7 @@ from aim.visualization.matplotlib_viewer import Matplotlib2DViewer
 from aim.blocks.source import SourceBlock
 from aim.blocks.sink import SinkBlock
 from aim.blocks.move import MoveBlock
+from aim.visualization.pygame_3d_viewer import Pygame3DViewer
 
 def main():
     """
@@ -14,7 +15,8 @@ def main():
     space = NoCollisionSpace()
     sim = Simulator(max_ticks=20, spaces={"free_space": space})
 
-    viewer = Matplotlib2DViewer(simulator=sim)
+    # viewer = Matplotlib2DViewer(simulator=sim)
+    viewer = Pygame3DViewer(simulator=sim)
     sim.viewer = viewer
 
     class MovingAgent(BaseAgent):
@@ -23,6 +25,7 @@ def main():
             self.start_position = (0.0, 0.0, 0.0)
             self.target_position = (10.0, 10.0, 0.0)
             self.speed = 2.0
+            self.color = (255, 0, 0)
 
     source = SourceBlock(sim, agent_class=MovingAgent, spawn_schedule=lambda tick: 1 if tick == 1 else 0)
     move_block = MoveBlock(sim, space_name="free_space", speed=1.0)
@@ -32,6 +35,7 @@ def main():
     move_block.connect(sink)
 
     sim.run()
+    viewer.show_final()
 
     assert sink.count == 1, "Agent should reach sink"
     # Should take ceil(14.14 / 2.0) = 8 ticks to move + 1 for ejection = tick 9

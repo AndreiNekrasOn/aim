@@ -33,6 +33,7 @@ class BaseBlock(ABC):
         Accept agent. Must call agent._enter_block(self) and self.on_enter(agent).
         """
         agent._enter_block(self)
+        agent.on_enter_block(self)
         if self.on_enter is not None:
             self.on_enter(agent)
 

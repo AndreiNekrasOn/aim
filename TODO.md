@@ -1,4 +1,2 @@
-- [ ] 3D visualization
-- [ ] ConveyorSpace editor, JSON-compatible schema and reader
-- [ ] space.register_entity is trash
-- [ ] SwitchBlock
+- [x] resource and resourcePool-type block (?)
+- [ ] Better visualization
