@@ -1,0 +1,95 @@
+"""
+Example demonstrating an agent following a multi-angle path with obstacle avoidance
+"""
+
+from aim import Simulator, BaseAgent
+from aim.blocks.source import SourceBlock
+from aim.blocks.sink import SinkBlock
+from aim.blocks.move import MoveBlock
+from aim.spaces.collision_space import CollisionSpace, Prism
+from aim.visualization import Pygame3DViewer
+
+def main():
+    # Create simulator with 3D visualization
+    sim = Simulator(max_ticks=200)
+    
+    # Create a CollisionSpace with multiple obstacles
+    obstacles = []
+    
+    # Add multiple obstacles to create a more complex path
+    # Obstacle 1: A vertical barrier
+    obstacle1_base = [
+        (0, -3, 0),
+        (1, -3, 0),
+        (1, 1, 0),
+        (0, 1, 0)
+    ]
+    obstacle1: Prism = (obstacle1_base, 2.0)
+    obstacles.append(obstacle1)
+    
+    # Obstacle 2: A horizontal barrier
+    obstacle2_base = [
+        (2, 2, 0),
+        (5, 2, 0),
+        (5, 3, 0),
+        (2, 3, 0)
+    ]
+    obstacle2: Prism = (obstacle2_base, 2.0)
+    obstacles.append(obstacle2)
+    
+    space = CollisionSpace(obstacles=obstacles)
+    
+    # Create a Pygame 3D viewer
+    viewer = Pygame3DViewer(sim, width=1000, height=700)
+    sim.viewer = viewer
+    
+    # Register the space with the simulator
+    sim.add_space("collision_space", space)
+    
+    # Create an agent that follows a multi-angle path with specified waypoints
+    class MultiAngleAgent(BaseAgent):
+        def __init__(self):
+            super().__init__()
+            self.color = (255, 100, 100)  # Reddish
+            # Define start, target and a path with multiple angles
+            self.start_position = (-4, -4, 1)
+            self.target_position = (6, 4, 1)
+            # Define a specific path with multiple waypoints
+            self.path = [
+                (-4, -4, 1),  # Start
+                (-2, -2, 1),  # Waypoint 1
+                (0, 2, 1),    # Waypoint 2 (goes around obstacle 1)
+                (3, 2, 1),    # Waypoint 3 (goes above obstacle 2)
+                (6, 4, 1)     # End
+            ]
+            self.speed = 0.7
+    
+    # Create blocks
+    source = SourceBlock(
+        simulator=sim, 
+        agent_class=MultiAngleAgent, 
+        spawn_schedule=lambda tick: 1 if tick == 0 else 0  # One agent at tick 0
+    )
+    
+    move_block = MoveBlock(simulator=sim, space_name="collision_space", speed=0.7)
+    
+    sink = SinkBlock(simulator=sim)
+    
+    # Connect blocks
+    source.connect(move_block)
+    move_block.connect(sink)
+    
+    # Run simulation
+    print("Starting multi-angle path following with pre-defined path...")
+    print("Controls: Left-click + drag to rotate, mouse wheel to zoom, ESC to quit")
+    print("Red dots = agents, Gray shapes = obstacles, Red/Green/Blue lines = axes")
+    sim.run()
+    
+    print(f"Simulation completed!")
+    print(f"Agents completed: {sink.count}")
+    
+    # Keep the window open for post-simulation navigation
+    viewer.show_final()
+
+if __name__ == "__main__":
+    main()

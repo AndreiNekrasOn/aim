@@ -263,13 +263,165 @@ class CollisionSpace(SpaceManager):
 
     def _calculate_path(self, start: Point3D, target: Point3D, agent: BaseAgent) -> Path:
         """
-        Calculate a path from start to target that avoids obstacles.
-        This is a simple implementation using a basic pathfinding approach.
-        A real implementation would use more sophisticated algorithms like A*.
+        Calculate a path from start to target that avoids obstacles using a simple boundary following algorithm.
+        If a straight line to the target intersects an obstacle, the agent will go around it.
         """
-        # For now, return a direct path as fallback
-        # A more sophisticated implementation would use algorithms like A*
-        return [target]
+        # For a simple implementation, we'll just return the target directly
+        # A more sophisticated implementation would implement the boundary following algorithm
+        path = [target]
+        
+        # Check if the direct path intersects any obstacles
+        if self._line_intersects_obstacle(start, target):
+            # Implement simple boundary following here
+            path = self._boundary_follow_path(start, target)
+        
+        return path
+
+    def _boundary_follow_path(self, start: Point3D, target: Point3D) -> Path:
+        """
+        Simple boundary following algorithm.
+        When a direct path hits an obstacle, the agent goes around the obstacle.
+        This is a simplified implementation focused on 2D pathfinding with Z fixed.
+        """
+        # For now, just return the target as a simple fallback
+        # In a more advanced implementation, we'd implement the actual boundary following
+        path = [target]
+        
+        # Start with a direct path
+        current = start
+        path_points = [start]
+        
+        # Check if straight path to target intersects any obstacle
+        while not self._is_direct_path_clear(current, target):
+            # Find the first intersecting obstacle
+            intersecting_obstacle = self._get_intersecting_obstacle(current, target)
+            
+            if intersecting_obstacle is None:
+                break  # No more obstacles on path
+                
+            # Calculate a detour around this obstacle
+            # For now, we'll just go above the obstacle in the Y direction
+            base_points, height = intersecting_obstacle
+            
+            # Find the bounding box of the obstacle
+            min_x = min(p[0] for p in base_points)
+            max_x = max(p[0] for p in base_points)
+            min_y = min(p[1] for p in base_points)
+            max_y = max(p[1] for p in base_points)
+            
+            # Determine a point to go around the obstacle
+            # Go above the obstacle
+            detour_point = (max_x + 1, max_y + 2, current[2])
+            
+            # Add the detour point to the path
+            path_points.append(detour_point)
+            current = detour_point
+            
+            # Limit iterations to avoid infinite loops
+            if len(path_points) > 20:
+                break
+        
+        # Add target to the path
+        path_points.append(target)
+        
+        return path_points[1:]  # Exclude the starting point
+
+    def _is_direct_path_clear(self, start: Point3D, end: Point3D) -> bool:
+        """
+        Check if the direct path between two points is clear of obstacles.
+        """
+        return not self._line_intersects_obstacle(start, end)
+
+    def _get_intersecting_obstacle(self, start: Point3D, end: Point3D) -> Optional[Prism]:
+        """
+        Return the first obstacle that intersects the line between start and end points.
+        """
+        for obstacle in self._obstacles:
+            if self._line_intersects_prism(start, end, obstacle[0], obstacle[1]):
+                return obstacle
+        return None
+
+    def _line_intersects_obstacle(self, p1: Point3D, p2: Point3D) -> bool:
+        """
+        Check if a line between two points intersects any obstacle.
+        """
+        for obstacle in self._obstacles:
+            base_points, height = obstacle
+            if self._line_intersects_prism(p1, p2, base_points, height):
+                return True
+        return False
+
+    def _line_intersects_prism(self, p1: Point3D, p2: Point3D, base_points: List[Point3D], height: float) -> bool:
+        """
+        Check if a line intersects a prism (3D polygon extruded along Z-axis).
+        This is a simplified implementation.
+        """
+        # Check if the line intersects the Z bounds of the prism
+        min_z = float('inf')
+        max_z = float('-inf')
+        for base_point in base_points:
+            z_coord = base_point[2]
+            min_z = min(min_z, z_coord)
+            max_z = max(max_z, z_coord)
+        
+        # The prism extends from min_z to min_z + height
+        min_z_val = min_z
+        max_z_val = min_z + height
+        
+        # Check if line segment crosses the Z range of the prism
+        if not ((p1[2] <= max_z_val and p2[2] >= min_z_val) or (p2[2] <= max_z_val and p1[2] >= min_z_val)):
+            return False
+        
+        # For simplicity, we'll check if the line passes through the base polygon 
+        # at the average Z coordinate between p1 and p2
+        avg_z = (p1[2] + p2[2]) / 2
+        
+        if not (min_z_val <= avg_z <= max_z_val):
+            return False
+        
+        # Check if the line from p1 to p2 crosses the base polygon
+        # This would require more complex 3D intersection calculations
+        # For now, we'll simplify to 2D cross-section at the average Z level
+        
+        # Project the line onto the XY plane at average Z level
+        # This is a simplification
+        line_start = (p1[0], p1[1])
+        line_end = (p2[0], p2[1])
+        
+        # Check if the line intersects the polygon at this Z level
+        for i in range(len(base_points)):
+            poly_start = (base_points[i][0], base_points[i][1])
+            poly_end = (base_points[(i + 1) % len(base_points)][0], base_points[(i + 1) % len(base_points)][1])
+            
+            if self._lines_intersect(line_start, line_end, poly_start, poly_end):
+                return True
+        
+        return False
+
+    def _lines_intersect(self, p1: Tuple[float, float], p2: Tuple[float, float], 
+                         p3: Tuple[float, float], p4: Tuple[float, float]) -> bool:
+        """
+        Check if two 2D line segments intersect.
+        """
+        x1, y1 = p1
+        x2, y2 = p2
+        x3, y3 = p3
+        x4, y4 = p4
+        
+        # Calculate the denominator
+        den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+        if abs(den) < 1e-9:  # Lines are parallel
+            return False
+        
+        # Calculate intersection parameters
+        t_num = (x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)
+        u_num = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3))
+        
+        t = t_num / den
+        u = u_num / den
+        
+        # Check if intersection is within both line segments
+        return 0 <= t <= 1 and 0 <= u <= 1
 
 
 

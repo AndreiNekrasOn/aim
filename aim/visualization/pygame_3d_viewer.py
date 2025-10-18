@@ -1,6 +1,7 @@
 """
-Simple Pygame 3D viewer for NoCollisionSpace
+Simple Pygame 3D viewer for spaces (NoCollisionSpace and CollisionSpace)
 Displays agents in 3D space as points that can be rotated and zoomed
+Draws obstacles from CollisionSpace as prisms
 """
 
 import pygame
@@ -28,8 +29,10 @@ class Pygame3DViewer:
         self.zoom = 1.0
 
         # Colors
-        self.background_color = (0, 0, 0)  # Dark blue background
-        self.axis_color = (255, 255, 255)  # White axes
+        self.background_color = (10, 10, 40)  # Dark blue background
+        self.axis_color = (255, 255, 255)    # White axes
+        self.agent_color = (0, 200, 255)     # Light blue agents
+        self.obstacle_color = (150, 150, 150) # Gray obstacles
 
         # For handling pygame events
         self.dragging = False
@@ -93,6 +96,9 @@ class Pygame3DViewer:
         # Draw coordinate axes for reference
         self.draw_axes()
 
+        # Draw obstacles from CollisionSpace if available
+        self._draw_obstacles()
+
         # Draw agents
         for agent in self.simulator.agents:
             if hasattr(agent, 'space_state') and agent.space_state:
@@ -102,11 +108,62 @@ class Pygame3DViewer:
                     screen_x, screen_y = self.project_3d_to_2d(x, y, z)
 
                     # Draw agent as a point
-                    pygame.draw.circle(self.screen, agent.color, (int(screen_x), int(screen_y)), 5)
+                    # Use agent's color if available, otherwise default color
+                    agent_color = getattr(agent, 'color', self.agent_color)
+                    pygame.draw.circle(self.screen, agent_color, (int(screen_x), int(screen_y)), 5)
 
         # Update display
         pygame.display.flip()
         self.clock.tick(10) # Cap at 10 FPS
+
+    def _draw_obstacles(self):
+        """Draw obstacles from CollisionSpace if available in simulator spaces"""
+        if hasattr(self.simulator, 'spaces'):
+            for space_name, space in self.simulator.spaces.items():
+                # Check if the space has obstacles (CollisionSpace)
+                if hasattr(space, '_obstacles') and space._obstacles:
+                    for obstacle in space._obstacles:
+                        self._draw_prism(obstacle)
+
+    def _draw_prism(self, prism):
+        """Draw a prism obstacle in 3D space"""
+        points_3d, height = prism
+        if len(points_3d) < 3:
+            return  # Not a valid polygon
+
+        # Draw the base polygon
+        base_screen_points = []
+        for point in points_3d:
+            x, y, z = point
+            screen_x, screen_y = self.project_3d_to_2d(x, y, z)
+            base_screen_points.append((int(screen_x), int(screen_y)))
+        
+        if len(base_screen_points) > 2:
+            pygame.draw.polygon(self.screen, self.obstacle_color, base_screen_points)
+            pygame.draw.polygon(self.screen, (200, 200, 200), base_screen_points, 2)  # Border
+
+        # Draw the top polygon (at base Z + height)
+        top_screen_points = []
+        for point in points_3d:
+            x, y, z = point
+            # Assuming height is added to the Z coordinate
+            top_z = z + height
+            screen_x, screen_y = self.project_3d_to_2d(x, y, top_z)
+            top_screen_points.append((int(screen_x), int(screen_y)))
+        
+        if len(top_screen_points) > 2:
+            pygame.draw.polygon(self.screen, self.obstacle_color, top_screen_points)
+            pygame.draw.polygon(self.screen, (200, 200, 200), top_screen_points, 2)  # Border
+
+        # Draw vertical lines connecting base and top
+        for i in range(len(points_3d)):
+            base_point = points_3d[i]
+            top_point = (points_3d[i][0], points_3d[i][1], points_3d[i][2] + height)
+            
+            base_x, base_y = self.project_3d_to_2d(base_point[0], base_point[1], base_point[2])
+            top_x, top_y = self.project_3d_to_2d(top_point[0], top_point[1], top_point[2])
+            
+            pygame.draw.line(self.screen, (200, 200, 200), (int(base_x), int(base_y)), (int(top_x), int(top_y)), 2)
 
     def draw_axes(self):
         """Draw coordinate axes for reference"""
@@ -161,6 +218,9 @@ class Pygame3DViewer:
             self.screen.fill(self.background_color)
             self.draw_axes()
 
+            # Draw obstacles
+            self._draw_obstacles()
+
             # Draw agents
             for agent in self.simulator.agents:
                 if hasattr(agent, 'space_state') and agent.space_state:
@@ -170,7 +230,9 @@ class Pygame3DViewer:
                         screen_x, screen_y = self.project_3d_to_2d(x, y, z)
 
                         # Draw agent as a point
-                        pygame.draw.circle(self.screen, agent.color, (int(screen_x), int(screen_y)), 5)
+                        # Use agent's color if available, otherwise default color
+                        agent_color = getattr(agent, 'color', self.agent_color)
+                        pygame.draw.circle(self.screen, agent_color, (int(screen_x), int(screen_y)), 5)
 
             pygame.display.flip()
             self.clock.tick(60)  # Cap at 60 FPS
