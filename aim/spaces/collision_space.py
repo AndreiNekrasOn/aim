@@ -16,7 +16,7 @@ class CollisionSpace(SpaceManager):
     Supports agent paths.
     """
 
-    def __init__(self, obstacles: Optional[List[Prism]] = None):
+    def __init__(self, obstacles: Optional[List[Prism]] = None, strict_collision_checking: bool = False):
         # Agent -> current position
         self._agent_position: Dict[BaseAgent, Point3D] = {}
         # Agent -> target position
@@ -27,6 +27,8 @@ class CollisionSpace(SpaceManager):
         self._agent_path: Dict[BaseAgent, Path] = {}
         # List of obstacles in the space
         self._obstacles: List[Prism] = obstacles or []
+        # Whether to throw an error when a path intersects an obstacle
+        self._strict_collision_checking = strict_collision_checking
 
     def register(self, agent: BaseAgent, initial_state: Dict[str, Any]) -> bool:
         """
@@ -128,6 +130,11 @@ class CollisionSpace(SpaceManager):
                 # Follow the path - move to the next waypoint in the path
                 next_waypoint = path[0]
                 
+                # If strict collision checking is enabled, check if the path to the next waypoint intersects an obstacle
+                if self._strict_collision_checking:
+                    if self._line_intersects_obstacle(current_pos, next_waypoint):
+                        raise RuntimeError(f"Agent path intersects obstacle between {current_pos} and {next_waypoint}")
+                
                 # Compute direction to next waypoint
                 dx = next_waypoint[0] - current_pos[0]
                 dy = next_waypoint[1] - current_pos[1]
@@ -155,6 +162,11 @@ class CollisionSpace(SpaceManager):
                         current_pos[2] + dz * ratio
                     )
             else:
+                # If strict collision checking is enabled for direct movement, check if the direct path intersects an obstacle
+                if self._strict_collision_checking:
+                    if self._line_intersects_obstacle(current_pos, target_pos):
+                        raise RuntimeError(f"Direct agent path intersects obstacle between {current_pos} and {target_pos}")
+                
                 # Move directly toward target
                 dx = target_pos[0] - current_pos[0]
                 dy = target_pos[1] - current_pos[1]
