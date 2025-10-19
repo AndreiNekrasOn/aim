@@ -1,6 +1,6 @@
 """
 Simple Pygame 3D viewer for spaces (NoCollisionSpace and CollisionSpace)
-Displays agents in 3D space as points that can be rotated and zoomed
+Displays agents in 3D space as points that can be rotated, panned, and zoomed
 Draws obstacles from CollisionSpace as prisms
 """
 
@@ -26,6 +26,9 @@ class Pygame3DViewer:
         self.camera_distance = 10
         self.camera_angle_x = 0  # Rotation around X-axis (vertical rotation)
         self.camera_angle_y = 0  # Rotation around Y-axis (horizontal rotation)
+        self.camera_offset_x = 0  # Camera position offset X
+        self.camera_offset_y = 0  # Camera position offset Y
+        self.camera_offset_z = 0  # Camera position offset Z
         self.zoom = 1.0
 
         # Colors
@@ -36,13 +39,20 @@ class Pygame3DViewer:
 
         # For handling pygame events
         self.dragging = False
+        self.drag_button = 0  # 1 for left button, 3 for right button
         self.last_mouse_pos = (0, 0)
+        self.pan_speed = 0.1   # Speed of panning
 
     def project_3d_to_2d(self, x: float, y: float, z: float) -> Tuple[float, float]:
         """
         Project 3D coordinates to 2D screen coordinates
-        This is a simple orthographic projection
+        This is a simple orthographic projection with camera transformations
         """
+        # Apply camera offset (translation)
+        x -= self.camera_offset_x
+        y -= self.camera_offset_y
+        z -= self.camera_offset_z
+
         # Apply camera rotation
         # Rotate around Y-axis
         x_rot = x * math.cos(self.camera_angle_y) - z * math.sin(self.camera_angle_y)
@@ -69,24 +79,32 @@ class Pygame3DViewer:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # Left mouse button
+                if event.button in [1, 3]:  # Left or right mouse button
                     self.dragging = True
+                    self.drag_button = event.button
                     self.last_mouse_pos = event.pos
                 elif event.button == 4:  # Mouse wheel up
                     self.zoom *= 1.1
                 elif event.button == 5:  # Mouse wheel down
                     self.zoom *= 0.9
             elif event.type == pygame.MOUSEBUTTONUP:
-                if event.button == 1:  # Left mouse button
+                if event.button in [1, 3]:  # Left or right mouse button
                     self.dragging = False
+                    self.drag_button = 0
             elif event.type == pygame.MOUSEMOTION:
                 if self.dragging:
                     dx = event.pos[0] - self.last_mouse_pos[0]
                     dy = event.pos[1] - self.last_mouse_pos[1]
 
-                    # Adjust rotation speed
-                    self.camera_angle_y += dx * 0.01
-                    self.camera_angle_x += dy * 0.01
+                    if self.drag_button == 1:  # Left mouse button - rotate
+                        # Adjust rotation speed
+                        self.camera_angle_y += dx * 0.01
+                        self.camera_angle_x += dy * 0.01
+                    elif self.drag_button == 3:  # Right mouse button - pan
+                        # Adjust panning speed based on zoom level
+                        pan_factor = self.pan_speed / self.zoom
+                        self.camera_offset_x -= dx * pan_factor
+                        self.camera_offset_y += dy * pan_factor
 
                     self.last_mouse_pos = event.pos
 
@@ -190,24 +208,32 @@ class Pygame3DViewer:
                 if event.type == pygame.QUIT:
                     running = False
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:  # Left mouse button
+                    if event.button in [1, 3]:  # Left or right mouse button
                         self.dragging = True
+                        self.drag_button = event.button
                         self.last_mouse_pos = event.pos
                     elif event.button == 4:  # Mouse wheel up
                         self.zoom *= 1.1
                     elif event.button == 5:  # Mouse wheel down
                         self.zoom *= 0.9
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    if event.button == 1:  # Left mouse button
+                    if event.button in [1, 3]:  # Left or right mouse button
                         self.dragging = False
+                        self.drag_button = 0
                 elif event.type == pygame.MOUSEMOTION:
                     if self.dragging:
                         dx = event.pos[0] - self.last_mouse_pos[0]
                         dy = event.pos[1] - self.last_mouse_pos[1]
 
-                        # Adjust rotation speed
-                        self.camera_angle_y += dx * 0.01
-                        self.camera_angle_x += dy * 0.01
+                        if self.drag_button == 1:  # Left mouse button - rotate
+                            # Adjust rotation speed
+                            self.camera_angle_y += dx * 0.01
+                            self.camera_angle_x += dy * 0.01
+                        elif self.drag_button == 3:  # Right mouse button - pan
+                            # Adjust panning speed based on zoom level
+                            pan_factor = self.pan_speed / self.zoom
+                            self.camera_offset_x -= dx * pan_factor
+                            self.camera_offset_y += dy * pan_factor
 
                         self.last_mouse_pos = event.pos
                 elif event.type == pygame.KEYDOWN:
