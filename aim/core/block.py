@@ -1,7 +1,7 @@
 # core/block.py
 
 from .agent import BaseAgent
-from typing import Optional, List, Callable, TYPE_CHECKING
+from typing import Optional, List, Callable, Tuple, TYPE_CHECKING
 from abc import ABC, abstractmethod
 
 if TYPE_CHECKING:
@@ -37,13 +37,14 @@ class BaseBlock(ABC):
         if self.on_enter is not None:
             self.on_enter(agent)
 
-    def connect(self, *blocks: 'BaseBlock') -> None:
+    def connect(self, *blocks: 'BaseBlock') -> tuple['BaseBlock', ...]:
         """
         Connect this block to one or more output blocks.
         Default: stores in self.output_connections[0], [1], etc.
         Subclasses may override or add semantic meaning (e.g., IfBlock.connect_first/second).
         """
         self.output_connections.extend(blocks)
+        return blocks
 
     def _tick(self) -> None:
         """

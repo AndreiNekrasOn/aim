@@ -11,6 +11,7 @@ from .gate import GateBlock
 from .combine import CombineBlock
 from .split import SplitBlock
 from .switch import SwitchBlock
+from .move import MoveBlock
 
 __all__ = [
     'SourceBlock',
@@ -23,5 +24,6 @@ __all__ = [
     'GateBlock',
     'CombineBlock',
     'SplitBlock',
-    'SwitchBlock'
+    'SwitchBlock',
+    'MoveBlock'
 ]
