@@ -129,12 +129,12 @@ class CollisionSpace(SpaceManager):
             if path and len(path) > 0:
                 # Follow the path - move to the next waypoint in the path
                 next_waypoint = path[0]
-                
+
                 # If strict collision checking is enabled, check if the path to the next waypoint intersects an obstacle
                 if self._strict_collision_checking:
                     if self._line_intersects_obstacle(current_pos, next_waypoint):
                         raise RuntimeError(f"Agent path intersects obstacle between {current_pos} and {next_waypoint}")
-                
+
                 # Compute direction to next waypoint
                 dx = next_waypoint[0] - current_pos[0]
                 dy = next_waypoint[1] - current_pos[1]
@@ -166,7 +166,7 @@ class CollisionSpace(SpaceManager):
                 if self._strict_collision_checking:
                     if self._line_intersects_obstacle(current_pos, target_pos):
                         raise RuntimeError(f"Direct agent path intersects obstacle between {current_pos} and {target_pos}")
-                
+
                 # Move directly toward target
                 dx = target_pos[0] - current_pos[0]
                 dy = target_pos[1] - current_pos[1]
@@ -239,7 +239,7 @@ class CollisionSpace(SpaceManager):
         This is a simplified implementation for a prism that extends upward from the base.
         """
         px, py, pz = point
-        
+
         # First, check if the Z coordinate is within the prism height
         # Assuming the base is in the XY plane, find Z bounds
         min_z = float('inf')
@@ -248,16 +248,16 @@ class CollisionSpace(SpaceManager):
             z_coord = base_point[2]
             min_z = min(min_z, z_coord)
             max_z = max(max_z, z_coord)
-        
+
         # The prism extends from min_z to min_z + height
         if not (min_z <= pz <= min_z + height):
             return False
-        
+
         # Check if point is inside the base polygon using ray casting
         x, y = px, py
         n = len(base_points)
         inside = False
-        
+
         # Ray casting algorithm to check if point is inside polygon
         p1x, p1y = base_points[0][0], base_points[0][1]
         for i in range(1, n + 1):
@@ -270,7 +270,7 @@ class CollisionSpace(SpaceManager):
                         if p1x == p2x or x <= xinters:
                             inside = not inside
             p1x, p1y = p2x, p2y
-        
+
         return inside
 
     def _calculate_path(self, start: Point3D, target: Point3D, agent: BaseAgent) -> Path:
@@ -281,12 +281,12 @@ class CollisionSpace(SpaceManager):
         # For a simple implementation, we'll just return the target directly
         # A more sophisticated implementation would implement the boundary following algorithm
         path = [target]
-        
+
         # Check if the direct path intersects any obstacles
         if self._line_intersects_obstacle(start, target):
             # Implement simple boundary following here
             path = self._boundary_follow_path(start, target)
-        
+
         return path
 
     def _boundary_follow_path(self, start: Point3D, target: Point3D) -> Path:
@@ -297,45 +297,31 @@ class CollisionSpace(SpaceManager):
         """
         # For now, just return the target as a simple fallback
         # In a more advanced implementation, we'd implement the actual boundary following
-        path = [target]
-        
+
         # Start with a direct path
         current = start
         path_points = [start]
-        
+
         # Check if straight path to target intersects any obstacle
         while not self._is_direct_path_clear(current, target):
             # Find the first intersecting obstacle
             intersecting_obstacle = self._get_intersecting_obstacle(current, target)
-            
+
             if intersecting_obstacle is None:
                 break  # No more obstacles on path
-                
-            # Calculate a detour around this obstacle
-            # For now, we'll just go above the obstacle in the Y direction
-            base_points, height = intersecting_obstacle
-            
-            # Find the bounding box of the obstacle
-            min_x = min(p[0] for p in base_points)
-            max_x = max(p[0] for p in base_points)
-            min_y = min(p[1] for p in base_points)
-            max_y = max(p[1] for p in base_points)
-            
+
             # Determine a point to go around the obstacle
             # Go above the obstacle
-            detour_point = (max_x + 1, max_y + 2, current[2])
-            
+            detour_point = self._get_eight_way_closest_detour(current, intersecting_obstacle, target)
+
             # Add the detour point to the path
             path_points.append(detour_point)
             current = detour_point
-            
-            # Limit iterations to avoid infinite loops
-            if len(path_points) > 20:
-                break
-        
+
+
         # Add target to the path
         path_points.append(target)
-        
+
         return path_points[1:]  # Exclude the starting point
 
     def _is_direct_path_clear(self, start: Point3D, end: Point3D) -> bool:
@@ -348,10 +334,206 @@ class CollisionSpace(SpaceManager):
         """
         Return the first obstacle that intersects the line between start and end points.
         """
+        obstacles = []
         for obstacle in self._obstacles:
             if self._line_intersects_prism(start, end, obstacle[0], obstacle[1]):
-                return obstacle
-        return None
+                obstacles.append(obstacle)
+        if len(obstacles) == 0:
+            return None
+        closest = obstacles[0]
+        distance_to_closest = self._distance_to_prism(start, closest)
+        for obstacle in obstacles:
+            distance_to_current = self._distance_to_prism(start, obstacle)
+            if distance_to_current < distance_to_closest:
+                distance_to_closest = distance_to_current
+                closest = obstacle
+        return closest
+
+    def _distance_to_prism(self, start: Point3D, obstacle: Prism) -> float:
+        """
+        Calculate the minimum distance from a point to a prism.
+        The prism is defined by a base polygon and a height (extrusion along Z-axis).
+        """
+        base_points, height = obstacle
+
+        # Extract coordinates
+        start_x, start_y, start_z = start
+
+        # Get Z-bounds of the prism
+        min_z = min(p[2] for p in base_points)
+        max_z = min_z + height
+
+        # Check if the point's Z-coordinate is within the prism's Z-range
+        z_within_range = min_z <= start_z <= max_z
+
+        # Project the start point to the XY-plane of the prism
+        # Find the point in the base polygon closest to the projection
+        projected_x, projected_y = start_x, start_y
+        min_dist_2d = float('inf')
+
+        # Check distance to each edge of the base polygon
+        for i in range(len(base_points)):
+            p1 = base_points[i]
+            p2 = base_points[(i + 1) % len(base_points)]
+
+            # Calculate distance from point to line segment
+            dist_to_edge = self._distance_point_to_line_segment(
+                (projected_x, projected_y),
+                (p1[0], p1[1]),
+                (p2[0], p2[1])
+            )
+            min_dist_2d = min(min_dist_2d, dist_to_edge)
+
+        # Also check distances to vertices of the base polygon
+        for p in base_points:
+            dist_to_vertex = ((projected_x - p[0])**2 + (projected_y - p[1])**2)**0.5
+            min_dist_2d = min(min_dist_2d, dist_to_vertex)
+
+        # Handle Z distance component
+        z_distance = 0.0
+        if start_z < min_z:
+            z_distance = min_z - start_z
+        elif start_z > max_z:
+            z_distance = start_z - max_z
+        # If z is within range, z_distance remains 0
+
+        # The total distance is the 3D distance combining XY and Z components
+        distance = (min_dist_2d**2 + z_distance**2)**0.5
+
+        return distance
+
+    def _distance_point_to_line_segment(self, point: Tuple[float, float],
+                                        line_start: Tuple[float, float],
+                                        line_end: Tuple[float, float]) -> float:
+        """
+        Calculate the distance from a point to a line segment.
+        """
+        px, py = point
+        x1, y1 = line_start
+        x2, y2 = line_end
+
+        # Vector from line_start to line_end
+        dx = x2 - x1
+        dy = y2 - y1
+
+        # If the line segment is actually a point, return distance to that point
+        length_squared = dx*dx + dy*dy
+        if length_squared == 0:
+            return ((px - x1)**2 + (py - y1)**2)**0.5
+
+        # Calculate projection of point onto the line
+        t = max(0.0, min(1.0, ((px - x1) * dx + (py - y1) * dy) / length_squared))
+
+        # Calculate the projection point
+        projection_x = x1 + t * dx
+        projection_y = y1 + t * dy
+
+        # Return distance from point to projection
+        return ((px - projection_x)**2 + (py - projection_y)**2)**0.5
+
+    def _get_eight_way_closest_detour(self, start: Point3D, intersecting_obstacle: Prism, target: Point3D) -> Point3D:
+        """
+        Checks eight directions from the start with a minimum delta step.
+        Determines the detour point closest to the target without intersecting
+        the obstacle
+        """
+        base_points, height = intersecting_obstacle
+
+        # Find the bounding box of the obstacle
+        # min_x = min(p[0] for p in base_points)
+        # max_x = max(p[0] for p in base_points)
+        # min_y = min(p[1] for p in base_points)
+        # max_y = max(p[1] for p in base_points)
+        #
+        # Calculate step size based on obstacle dimensions
+        # x_size = max_x - min_x
+        # y_size = max_y - min_y
+        # avg_size = (x_size + y_size) / 2
+        # step_size = max(1.0, avg_size * 0.5)  # Minimum step of 1.0, otherwise half average dimension
+
+        step_size = 0.1
+
+        # Define 8 directions around the obstacle (2D - X and Y only)
+        # These represent the 'delta' movements in each direction
+        directions = [
+            (step_size, 0, 0),           # East
+            (step_size, step_size, 0),   # Southeast
+            (0, step_size, 0),           # South
+            (-step_size, step_size, 0),  # Southwest
+            (-step_size, 0, 0),          # West
+            (-step_size, -step_size, 0), # Northwest
+            (0, -step_size, 0),          # North
+            (step_size, -step_size, 0)   # Northeast
+        ]
+
+        start_x, start_y, start_z = start
+        best_detour = None
+        min_distance_to_target = float('inf')
+
+        # Check each direction
+        for dx, dy, dz in directions:
+            candidate_point = (start_x + dx, start_y + dy, start_z + dz)
+
+            # Check if the candidate point is not inside the obstacle
+            if not self._is_inside_obstacle(candidate_point):
+                # Check if the path from start to this candidate doesn't intersect the same obstacle
+                if not self._line_intersects_obstacle(start, candidate_point):
+                    # Calculate distance to target
+                    dist_to_target = ((candidate_point[0] - target[0])**2 +
+                                    (candidate_point[1] - target[1])**2 +
+                                    (candidate_point[2] - target[2])**2)**0.5
+
+                    # If this is closer to the target, update the best detour
+                    if dist_to_target < min_distance_to_target:
+                        min_distance_to_target = dist_to_target
+                        best_detour = candidate_point
+
+        # If none of the immediate 8 directions work, try with a larger step size
+        if best_detour is None:
+            larger_step = step_size * 2
+            larger_directions = [
+                (larger_step, 0, 0),
+                (larger_step, larger_step, 0),
+                (0, larger_step, 0),
+                (-larger_step, larger_step, 0),
+                (-larger_step, 0, 0),
+                (-larger_step, -larger_step, 0),
+                (0, -larger_step, 0),
+                (larger_step, -larger_step, 0)
+            ]
+
+            for dx, dy, dz in larger_directions:
+                candidate_point = (start_x + dx, start_y + dy, start_z + dz)
+
+                if not self._is_inside_obstacle(candidate_point):
+                    if not self._line_intersects_obstacle(start, candidate_point):
+                        dist_to_target = ((candidate_point[0] - target[0])**2 +
+                                        (candidate_point[1] - target[1])**2 +
+                                        (candidate_point[2] - target[2])**2)**0.5
+
+                        if dist_to_target < min_distance_to_target:
+                            min_distance_to_target = dist_to_target
+                            best_detour = candidate_point
+
+        # Fallback: if still no valid detour found, just return a point in the direction of the target
+        if best_detour is None:
+            # Vector toward target
+            target_vec = (target[0] - start[0], target[1] - start[1], target[2] - start[2])
+            dist_to_target = (target_vec[0]**2 + target_vec[1]**2 + target_vec[2]**2)**0.5
+
+            if dist_to_target > 0:
+                # Normalize and scale by step size
+                scale = step_size / dist_to_target
+                best_detour = (
+                    start[0] + target_vec[0] * scale,
+                    start[1] + target_vec[1] * scale,
+                    start[2] + target_vec[2] * scale
+                )
+            else:
+                # If start and target are same, return start point
+                best_detour = start
+
+        return best_detour
 
     def _line_intersects_obstacle(self, p1: Point3D, p2: Point3D) -> bool:
         """
@@ -375,42 +557,42 @@ class CollisionSpace(SpaceManager):
             z_coord = base_point[2]
             min_z = min(min_z, z_coord)
             max_z = max(max_z, z_coord)
-        
+
         # The prism extends from min_z to min_z + height
         min_z_val = min_z
         max_z_val = min_z + height
-        
+
         # Check if line segment crosses the Z range of the prism
         if not ((p1[2] <= max_z_val and p2[2] >= min_z_val) or (p2[2] <= max_z_val and p1[2] >= min_z_val)):
             return False
-        
-        # For simplicity, we'll check if the line passes through the base polygon 
+
+        # For simplicity, we'll check if the line passes through the base polygon
         # at the average Z coordinate between p1 and p2
         avg_z = (p1[2] + p2[2]) / 2
-        
+
         if not (min_z_val <= avg_z <= max_z_val):
             return False
-        
+
         # Check if the line from p1 to p2 crosses the base polygon
         # This would require more complex 3D intersection calculations
         # For now, we'll simplify to 2D cross-section at the average Z level
-        
+
         # Project the line onto the XY plane at average Z level
         # This is a simplification
         line_start = (p1[0], p1[1])
         line_end = (p2[0], p2[1])
-        
+
         # Check if the line intersects the polygon at this Z level
         for i in range(len(base_points)):
             poly_start = (base_points[i][0], base_points[i][1])
             poly_end = (base_points[(i + 1) % len(base_points)][0], base_points[(i + 1) % len(base_points)][1])
-            
+
             if self._lines_intersect(line_start, line_end, poly_start, poly_end):
                 return True
-        
+
         return False
 
-    def _lines_intersect(self, p1: Tuple[float, float], p2: Tuple[float, float], 
+    def _lines_intersect(self, p1: Tuple[float, float], p2: Tuple[float, float],
                          p3: Tuple[float, float], p4: Tuple[float, float]) -> bool:
         """
         Check if two 2D line segments intersect.
@@ -419,19 +601,19 @@ class CollisionSpace(SpaceManager):
         x2, y2 = p2
         x3, y3 = p3
         x4, y4 = p4
-        
+
         # Calculate the denominator
         den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
         if abs(den) < 1e-9:  # Lines are parallel
             return False
-        
+
         # Calculate intersection parameters
         t_num = (x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)
         u_num = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3))
-        
+
         t = t_num / den
         u = u_num / den
-        
+
         # Check if intersection is within both line segments
         return 0 <= t <= 1 and 0 <= u <= 1
 
