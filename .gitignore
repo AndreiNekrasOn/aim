@@ -218,7 +218,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-proprietary/
 *.prof
 .qwen/
 QWEN.md
