@@ -23,13 +23,13 @@ class Pygame3DViewer:
         self.clock = pygame.time.Clock()
 
         # Camera settings
-        self.camera_distance = 10
+        self.camera_distance = 0
         self.camera_angle_x = 0  # Rotation around X-axis (vertical rotation)
         self.camera_angle_y = 0  # Rotation around Y-axis (horizontal rotation)
         self.camera_offset_x = 0  # Camera position offset X
         self.camera_offset_y = 0  # Camera position offset Y
         self.camera_offset_z = 0  # Camera position offset Z
-        self.zoom = 1.0
+        self.zoom = 20.0
 
         # Colors
         self.background_color = (10, 10, 40)  # Dark blue background
@@ -155,7 +155,7 @@ class Pygame3DViewer:
             x, y, z = point
             screen_x, screen_y = self.project_3d_to_2d(x, y, z)
             base_screen_points.append((int(screen_x), int(screen_y)))
-        
+
         if len(base_screen_points) > 2:
             pygame.draw.polygon(self.screen, self.obstacle_color, base_screen_points)
             pygame.draw.polygon(self.screen, (200, 200, 200), base_screen_points, 2)  # Border
@@ -168,7 +168,7 @@ class Pygame3DViewer:
             top_z = z + height
             screen_x, screen_y = self.project_3d_to_2d(x, y, top_z)
             top_screen_points.append((int(screen_x), int(screen_y)))
-        
+
         if len(top_screen_points) > 2:
             pygame.draw.polygon(self.screen, self.obstacle_color, top_screen_points)
             pygame.draw.polygon(self.screen, (200, 200, 200), top_screen_points, 2)  # Border
@@ -177,10 +177,10 @@ class Pygame3DViewer:
         for i in range(len(points_3d)):
             base_point = points_3d[i]
             top_point = (points_3d[i][0], points_3d[i][1], points_3d[i][2] + height)
-            
+
             base_x, base_y = self.project_3d_to_2d(base_point[0], base_point[1], base_point[2])
             top_x, top_y = self.project_3d_to_2d(top_point[0], top_point[1], top_point[2])
-            
+
             pygame.draw.line(self.screen, (200, 200, 200), (int(base_x), int(base_y)), (int(top_x), int(top_y)), 2)
 
     def draw_axes(self):

@@ -47,7 +47,7 @@ class CollisionSpace(SpaceManager):
             return False
         if not isinstance(target_position, tuple) or len(target_position) != 3:
             return False
-        if speed <= 0:
+        if speed < 0:
             return False
 
         # Check if start position is inside any obstacle
