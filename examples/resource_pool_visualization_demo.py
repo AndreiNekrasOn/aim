@@ -10,7 +10,7 @@ from aim import Simulator, BaseAgent, ResourcePool, ResourceAgent, SeizeBlock, R
 from aim.blocks.source import SourceBlock
 from aim.blocks.delay import DelayBlock
 from aim.blocks.move import MoveBlock
-from aim.spaces.no_collision_space import NoCollisionSpace
+from aim.spaces.collision_space import CollisionSpace
 from aim.visualization import Pygame3DViewer
 
 class OrderAgent(BaseAgent):
@@ -24,8 +24,10 @@ class OrderAgent(BaseAgent):
         self.packing_location = (-5, 0, -5)     # Go to packing station
         self.current_stage = "queue"            # Track current stage for visualization
         self.color = (0, 255, 0)
+        self.speed = 1.0
 
     def on_enter_block(self, block):
+        print(block)
         # Set position based on current stage for visualization
         if "Queue" in str(type(block)):
             self.space_state["position"] = self.dispatch_location
@@ -60,30 +62,33 @@ def main():
     sim = Simulator(max_ticks=100)
 
     # Create a NoCollisionSpace for spatial movement
-    warehouse_space = NoCollisionSpace()
+    warehouse_space = CollisionSpace(obstacles=[])
 
     # Create a Pygame 3D viewer
     viewer = Pygame3DViewer(sim, width=1000, height=700)
     sim.viewer = viewer
 
+
+    agents = [
+            ResourceAgent(resource_id="worker_1", resource_type="worker"),
+            ResourceAgent(resource_id="worker_2", resource_type="worker"),
+            ResourceAgent(resource_id="worker_3", resource_type="worker")
+    ]
     # Create a ResourcePool with 3 worker resources
     worker_pool = ResourcePool(
         name="warehouse_workers",
         simulator=sim,
         resource_type="worker",
-        initial_resources=[
-            ResourceAgent(resource_id="worker_1", resource_type="worker"),
-            ResourceAgent(resource_id="worker_2", resource_type="worker"),
-            ResourceAgent(resource_id="worker_3", resource_type="worker")
-        ]
+        initial_resources=agents # adds agents to simulator
     )
 
     # Set initial positions for worker resources (in a circle around dispatch area)
     for i, resource in enumerate(worker_pool.available_resources):
         angle = 2 * math.pi * i / 3
         x = 3 * math.cos(angle)
-        z = 3 * math.sin(angle)
+        z = 0
         resource.space_state["position"] = (x, 0.5, z)  # Y=0.5 to make them visible above floor
+        resource.space_state["start_position"] = (x, 0.5, z)  # Y=0.5 to make them visible above floor
 
     # Register the space with the simulator
     sim.add_space("warehouse", warehouse_space)
@@ -93,8 +98,9 @@ def main():
     source = SourceBlock(
         simulator=sim,
         agent_class=OrderAgent,
-        spawn_schedule=lambda tick: 1 if tick % 4 == 0 and tick <= 40 else 0  # Spawn orders every 4 ticks
+        spawn_schedule=lambda tick: 1 if tick < 3 else 0  # Spawn orders every 4 ticks
     )
+
 
     # 2. Queue: Orders wait for workers
     queue = QueueBlock(simulator=sim)
@@ -121,6 +127,7 @@ def main():
     completed_orders = SinkBlock(simulator=sim)
 
     # Connect the blocks in the process flow
+    # Note: Blocks auto-register with simulator on creation, no need to call sim.add_block()
     source.connect(queue)
     queue.connect(acquire_worker)
     acquire_worker.connect(go_to_shelf)
@@ -158,11 +165,13 @@ def main():
 
     # Set up callbacks
     go_to_shelf.on_enter = on_going_to_shelf
+    go_to_shelf.on_exit = lambda _: print("hello")
     picking_time.on_enter = on_shelf_arrival
     go_to_packing.on_enter = on_going_to_packing
     packing_time.on_enter = on_packing_arrival
 
     # Connect the remaining blocks
+    acquire_worker.connect(go_to_shelf)
     go_to_shelf.connect(picking_time)
     picking_time.connect(go_to_packing)
     go_to_packing.connect(packing_time)
