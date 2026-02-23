@@ -2,10 +2,11 @@ from typing import Any, Optional
 from aim.core.block import BaseBlock
 from aim.core.agent import BaseAgent
 from aim.core.simulator import Simulator
+from aim.entities.resource import ResourceAgent
 
-class MoveBlock(BaseBlock):
+class MoveResourcelock(BaseBlock):
     """
-    Moves agents from start_position to target_position in the space.
+    Moves resource_agent belonging to the agents from start_position to target_position in the space.
     Enforces one agent per tick.
     """
 
@@ -35,19 +36,25 @@ class MoveBlock(BaseBlock):
         if self._agent_entered_this_tick:
             raise RuntimeError(f"MoveBlock: only one agent per tick allowed.")
 
-        if not hasattr(agent, 'start_position') or not hasattr(agent, 'target_position'):
-            raise RuntimeError("Agent must have start_position and target_position attributes.")
+        if not hasattr(agent, "resource_agent"):
+            raise RuntimeError("Agent must have attached resource_agent as an attribute.")
+
+        start_position = agent.resource_agent.properties['start_position']
+        target_position = agent.resource_agent.properties['target_position']
+        speed = agent.resource_agent.properties['speed']
+        if start_position == None or target_position == None:
+            raise RuntimeError("Agent's resource_agent must have start_position and target_position attributes.")
 
         self._agent_entered_this_tick = True
 
         initial_state = {
-            "start_position": agent.start_position,
-            "target_position": agent.target_position,
-            "speed": getattr(agent, 'speed', self.default_speed)
+            "start_position": start_position,
+            "target_position": target_position,
+            "speed": speed or default_speed
         }
 
-        if not self.space.register(agent, initial_state):
-            raise RuntimeError(f"MoveBlock: agent {id(agent)} rejected by space")
+        if not self.space.register(agent.resource_agent, initial_state):
+            raise RuntimeError(f"MoveResourceBlock: agent {id(agent.resource_agent)} rejected by space")
 
         agent._enter_block(self)
         if self.on_enter is not None:
@@ -63,9 +70,10 @@ class MoveBlock(BaseBlock):
 
         completed_agents = []
         for agent in self._agents:
-            if self.space.is_movement_complete(agent):
+            if self.space.is_movement_complete(agent.resource_agent):
                 completed_agents.append(agent)
 
         for agent in completed_agents:
             self._eject(agent)
             self._agents.remove(agent)
+
