@@ -48,11 +48,11 @@ __all__ = [
     'GateBlock',
     'CombineBlock',
     'SplitBlock',
-    
+
     # Resource Blocks
     'SeizeBlock',
     'ReleaseBlock',
-    
+
     # Resource Classes
     'ResourceAgent',
     'ResourcePool',
