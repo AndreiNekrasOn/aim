@@ -17,7 +17,8 @@ class MoveResourcelock(BaseBlock):
         speed: float = 1.0
     ):
         """
-        Initialize MoveBlock.
+        Initialize MoveBResourcelock.
+
         :param simulator: Simulator instance.
         :param space_name: Name of space to use.
         :param speed: Default speed for agents (can be overridden per agent).
@@ -34,7 +35,7 @@ class MoveResourcelock(BaseBlock):
         Expects agent to have .start_position and .target_position attributes.
         """
         if self._agent_entered_this_tick:
-            raise RuntimeError(f"MoveBlock: only one agent per tick allowed.")
+            raise RuntimeError(f"MoveResourceBlock: only one agent per tick allowed.")
 
         if not hasattr(agent, "resource_agent"):
             raise RuntimeError("Agent must have attached resource_agent as an attribute.")
