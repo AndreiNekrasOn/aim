@@ -1,4 +1,3 @@
-from typing import Any, Optional
 from aim.core.block import BaseBlock
 from aim.core.agent import BaseAgent
 from aim.core.simulator import Simulator

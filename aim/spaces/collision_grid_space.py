@@ -19,7 +19,7 @@ class SpatialHashGrid:
     Spatial hash for O(1) obstacle lookup.
     Obstacles are expanded by clearance to block narrow gaps.
     """
-    
+
     def __init__(self, cell_size: float, clearance: float = 0.0):
         """
         :param cell_size: Size of each hash cell (matches grid resolution)
@@ -28,23 +28,23 @@ class SpatialHashGrid:
         self.cell_size = cell_size
         self.clearance = clearance
         self.grid: Dict[int, Dict[int, List[Tuple[float, float, float, float]]]] = {}
-    
+
     def _get_cell_key(self, x: float, y: float) -> Tuple[int, int]:
         """Get cell coordinates using floor division."""
         return (int(x // self.cell_size), int(y // self.cell_size))
-    
+
     def add_obstacle(self, min_x: float, min_y: float, max_x: float, max_y: float):
         """Add obstacle to all cells it covers (expanded by clearance)."""
         exp_min_x = min_x - self.clearance
         exp_max_x = max_x + self.clearance
         exp_min_y = min_y - self.clearance
         exp_max_y = max_y + self.clearance
-        
+
         min_cell_x = int(exp_min_x // self.cell_size)
         max_cell_x = int(exp_max_x // self.cell_size)
         min_cell_y = int(exp_min_y // self.cell_size)
         max_cell_y = int(exp_max_y // self.cell_size)
-        
+
         for cx in range(min_cell_x, max_cell_x + 1):
             if cx not in self.grid:
                 self.grid[cx] = {}
@@ -52,25 +52,25 @@ class SpatialHashGrid:
                 if cy not in self.grid[cx]:
                     self.grid[cx][cy] = []
                 self.grid[cx][cy].append((exp_min_x, exp_max_x, exp_min_y, exp_max_y))
-    
+
     def is_point_free(self, x: float, y: float) -> bool:
         """Check if point is free (only checks obstacles in same cell)."""
         cx, cy = self._get_cell_key(x, y)
-        
+
         if cx not in self.grid or cy not in self.grid[cx]:
             return True
-        
+
         for (obs_min_x, obs_max_x, obs_min_y, obs_max_y) in self.grid[cx][cy]:
             if obs_min_x <= x <= obs_max_x and obs_min_y <= y <= obs_max_y:
                 return False
-        
+
         return True
 
 
 class CollisionGridSpace(SpaceManager):
     """
     2D grid-based space with collision avoidance.
-    
+
     Grid points at regular intervals. Uses SpatialHashGrid with clearance
     to automatically block narrow gaps between obstacles.
     4-connectivity only (no diagonals).
@@ -132,7 +132,7 @@ class CollisionGridSpace(SpaceManager):
         gx = round((x - self.min_bound[0]) / self.grid_resolution)
         gy = round((y - self.min_bound[1]) / self.grid_resolution)
         gz = 0
-        
+
         if 0 <= gx < self.grid_size_x and 0 <= gy < self.grid_size_y:
             return (gx, gy, gz)
         return None
@@ -149,13 +149,13 @@ class CollisionGridSpace(SpaceManager):
         """Get 4-connected walkable neighbors."""
         gx, gy, gz = grid_point
         neighbors = []
-        
+
         for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             nx, ny = gx + dx, gy + dy
             if 0 <= nx < self.grid_size_x and 0 <= ny < self.grid_size_y:
                 if self.grid.get((nx, ny, gz), False):
                     neighbors.append((nx, ny, gz))
-        
+
         return neighbors
 
     def _heuristic(self, a: GridPoint, b: GridPoint) -> float:
@@ -167,10 +167,10 @@ class CollisionGridSpace(SpaceManager):
         open_set = [(0, 0, start)]
         came_from: Dict[GridPoint, GridPoint] = {}
         g_score: Dict[GridPoint, float] = {start: 0}
-        
+
         while open_set:
             _, current_g, current = heapq.heappop(open_set)
-            
+
             if current == end:
                 path = []
                 while current in came_from:
@@ -178,7 +178,7 @@ class CollisionGridSpace(SpaceManager):
                     current = came_from[current]
                 path.append(start)
                 return path[::-1]
-            
+
             for neighbor in self._get_neighbors(current):
                 tentative_g = current_g + self.grid_resolution
                 if neighbor not in g_score or tentative_g < g_score[neighbor]:
@@ -186,7 +186,7 @@ class CollisionGridSpace(SpaceManager):
                     g_score[neighbor] = tentative_g
                     f = tentative_g + self._heuristic(neighbor, end)
                     heapq.heappush(open_set, (f, tentative_g, neighbor))
-        
+
         return None
 
     def register(self, agent: BaseAgent, initial_state: Dict[str, Any]) -> bool:
@@ -195,20 +195,20 @@ class CollisionGridSpace(SpaceManager):
         target_position = initial_state.get("target_position")
         speed = initial_state.get("speed", 1.0)
         path = initial_state.get("path")
-        
+
         if not start_position or not target_position:
             return False
         if speed <= 0:
             return False
-        
+
         start_grid = self._world_to_grid(start_position)
         target_grid = self._world_to_grid(target_position)
-        
+
         if not start_grid or not target_grid:
             return False
         if not self.grid.get(start_grid, False) or not self.grid.get(target_grid, False):
             return False
-        
+
         agent.space_state = {
             "position": start_position,
             "target": target_position,
@@ -216,11 +216,11 @@ class CollisionGridSpace(SpaceManager):
             "progress": 0.0,
             "path": path
         }
-        
+
         self._agent_position[agent] = start_position
         self._agent_target[agent] = target_position
         self._agent_speed[agent] = speed
-        
+
         if path is None:
             grid_path = self._a_star(start_grid, target_grid)
             if grid_path:
@@ -231,7 +231,7 @@ class CollisionGridSpace(SpaceManager):
                 self._agent_path[agent] = []
         else:
             self._agent_path[agent] = path[:]
-        
+
         return True
 
     def unregister(self, agent: BaseAgent) -> bool:
@@ -251,19 +251,19 @@ class CollisionGridSpace(SpaceManager):
             state = agent.space_state
             if not state:
                 continue
-            
+
             current_pos = self._agent_position[agent]
             target_pos = self._agent_target[agent]
             speed = self._agent_speed[agent]
             path = self._agent_path[agent]
-            
+
             if path and len(path) > 0:
                 next_waypoint = path[0]
                 dx = next_waypoint[0] - current_pos[0]
                 dy = next_waypoint[1] - current_pos[1]
                 dz = next_waypoint[2] - current_pos[2]
                 dist = (dx**2 + dy**2 + dz**2)**0.5
-                
+
                 if dist <= 0.01:
                     path.pop(0)
                     if not path:
@@ -291,7 +291,7 @@ class CollisionGridSpace(SpaceManager):
                 if dist <= 0.01:
                     state["progress"] = 1.0
                 current_pos = current_pos
-            
+
             self._agent_position[agent] = current_pos
             state["position"] = current_pos
 
