@@ -109,12 +109,33 @@ class CollisionGridSpace(SpaceManager):
         # Generate walkable grid
         self.grid: Dict[GridPoint, bool] = {}
         self._generate_grid()
+        
+        # Pre-compute neighbor cache for A* performance
+        self._neighbor_cache: Dict[GridPoint, List[GridPoint]] = {}
+        self._build_neighbor_cache()
 
         # Agent tracking
         self._agent_position: Dict[BaseAgent, Point3D] = {}
         self._agent_target: Dict[BaseAgent, Point3D] = {}
         self._agent_speed: Dict[BaseAgent, float] = {}
         self._agent_path: Dict[BaseAgent, List[Point3D]] = {}
+    
+    def _build_neighbor_cache(self):
+        """Pre-compute walkable neighbors for each grid point. Called once during init."""
+        for gx in range(self.grid_size_x):
+            for gy in range(self.grid_size_y):
+                gz = 0
+                grid_point = (gx, gy, gz)
+                if self.grid.get(grid_point, False):  # Only cache for walkable points
+                    neighbors = []
+                    # Check 4 directions
+                    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                        nx, ny = gx + dx, gy + dy
+                        if 0 <= nx < self.grid_size_x and 0 <= ny < self.grid_size_y:
+                            neighbor = (nx, ny, gz)
+                            if self.grid.get(neighbor, False):
+                                neighbors.append(neighbor)
+                    self._neighbor_cache[grid_point] = neighbors
 
     def _generate_grid(self):
         """Generate 2D grid of walkable points."""
@@ -146,17 +167,8 @@ class CollisionGridSpace(SpaceManager):
         return (x, y, z)
 
     def _get_neighbors(self, grid_point: GridPoint) -> List[GridPoint]:
-        """Get 4-connected walkable neighbors."""
-        gx, gy, gz = grid_point
-        neighbors = []
-
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            nx, ny = gx + dx, gy + dy
-            if 0 <= nx < self.grid_size_x and 0 <= ny < self.grid_size_y:
-                if self.grid.get((nx, ny, gz), False):
-                    neighbors.append((nx, ny, gz))
-
-        return neighbors
+        """Get 4-connected walkable neighbors - uses pre-computed cache."""
+        return self._neighbor_cache.get(grid_point, [])
 
     def _heuristic(self, a: GridPoint, b: GridPoint) -> float:
         """Manhattan distance heuristic."""
@@ -262,7 +274,7 @@ class CollisionGridSpace(SpaceManager):
                 dx = next_waypoint[0] - current_pos[0]
                 dy = next_waypoint[1] - current_pos[1]
                 dz = next_waypoint[2] - current_pos[2]
-                dist = (dx**2 + dy**2 + dz**2)**0.5
+                dist = (abs(dx) + abs(dy) + abs(dz))
 
                 if dist <= 0.01:
                     path.pop(0)
