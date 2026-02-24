@@ -45,7 +45,7 @@ class QueueBlock(BaseBlock):
                 target_block.take(agent)
             except Exception as e:
                 # If target block raises or rejects, hold agent
-                print(f'ERROR: {e}')
+                # print(f'ERROR: {e}')
                 remaining.append(agent)
         self._waiting_agents = remaining
 

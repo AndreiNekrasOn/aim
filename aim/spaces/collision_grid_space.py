@@ -106,10 +106,12 @@ class CollisionGridSpace(SpaceManager):
             min_y, max_y = min(ys), max(ys)
             self.spatial_hash.add_obstacle(min_x, min_y, max_x, max_y)
 
+        self._obstacles = []
+
         # Generate walkable grid
         self.grid: Dict[GridPoint, bool] = {}
         self._generate_grid()
-        
+
         # Pre-compute neighbor cache for A* performance
         self._neighbor_cache: Dict[GridPoint, List[GridPoint]] = {}
         self._build_neighbor_cache()
@@ -119,7 +121,7 @@ class CollisionGridSpace(SpaceManager):
         self._agent_target: Dict[BaseAgent, Point3D] = {}
         self._agent_speed: Dict[BaseAgent, float] = {}
         self._agent_path: Dict[BaseAgent, List[Point3D]] = {}
-    
+
     def _build_neighbor_cache(self):
         """Pre-compute walkable neighbors for each grid point. Called once during init."""
         for gx in range(self.grid_size_x):
