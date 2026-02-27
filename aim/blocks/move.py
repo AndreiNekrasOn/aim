@@ -5,9 +5,8 @@ from aim.core.simulator import Simulator
 
 class MoveBlock(BaseBlock):
     """
-    Moves agents from start_position to target_position in a space.
-    Agents are registered with the space and move toward their target.
-    When movement is complete, agents are ejected to the next block.
+    Moves agents from start_position to target_position in the space.
+    Enforces one agent per tick.
     """
 
     def __init__(

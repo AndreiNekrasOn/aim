@@ -12,6 +12,7 @@ from .combine import CombineBlock
 from .split import SplitBlock
 from .switch import SwitchBlock
 from .move import MoveBlock
+from .move_resoure import MoveResourcelock
 
 __all__ = [
     'SourceBlock',
@@ -25,5 +26,6 @@ __all__ = [
     'CombineBlock',
     'SplitBlock',
     'SwitchBlock',
-    'MoveBlock'
+    'MoveBlock',
+    'MoveResourcelock'
 ]

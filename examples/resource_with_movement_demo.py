@@ -41,7 +41,7 @@ def main():
     sim = Simulator(max_ticks=80)
 
     # Create a Pygame 3D viewer
-    viewer = Pygame3DViewer(sim, width=1000, height=700)
+    viewer = Pygame3DViewer(sim)
     sim.viewer = viewer
 
     # Create a ResourcePool with 2 worker resources

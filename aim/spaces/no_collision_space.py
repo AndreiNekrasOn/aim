@@ -28,13 +28,19 @@ class NoCollisionSpace(SpaceManager):
         speed = initial_state.get("speed", 1.0)
 
         if start_position is None or target_position is None:
+            print(start_position)
+            print(target_position)
+            print('here,0')
             return False
 
         if not isinstance(start_position, tuple) or len(start_position) != 3:
+            print('here,1')
             return False
         if not isinstance(target_position, tuple) or len(target_position) != 3:
+            print('here,2')
             return False
         if speed <= 0:
+            print('here,3')
             return False
 
         # Initialize space_state
