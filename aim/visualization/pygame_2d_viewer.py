@@ -57,6 +57,8 @@ class Pygame2DViewer:
         self._obstacle_surface: Optional[pygame.Surface] = None
         self._obstacles_dirty = True
 
+        self._obstacles_length = 0
+
         # Viewport bounds (world coordinates)
         self._viewport_left = 0.0
         self._viewport_right = 0.0
@@ -110,6 +112,7 @@ class Pygame2DViewer:
                     for obstacle in space._obstacles:
                         if obstacle is not None:
                             obstacles_to_draw.append(obstacle)
+        self._obstacles_length = len(obstacles_to_draw)
 
         # Draw all obstacles to surface
         for obstacle in obstacles_to_draw:
@@ -149,7 +152,18 @@ class Pygame2DViewer:
 
     def render_tick(self, tick: int):
         """Render the current simulation state."""
+
+        obstacles_len = 0
+        if hasattr(self.simulator, 'spaces'):
+            for space in self.simulator.spaces.values():
+                if hasattr(space, '_obstacles') and space._obstacles:
+                    obstacles_len += len(space._obstacles)
+        if obstacles_len != self._obstacles_length:
+            self._obstacles_length = obstacles_len
+            self._obstacles_dirty = True
+
         # Handle events
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()

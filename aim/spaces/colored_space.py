@@ -18,7 +18,7 @@ class ColoredRectangle:
     Visual rectangle represented as a flat prism (height=0).
     Position (x, y) is the center, z is the bottom level.
     """
-    
+
     def __init__(
         self,
         rect_id: str,
@@ -42,7 +42,7 @@ class ColoredRectangle:
         self.alpha = alpha  # 0-255, 255 = opaque
         self.label = label
         self.visible = visible
-    
+
     def to_prism(self) -> Tuple[List[Point3D], float]:
         """
         Convert to prism format for Pygame3DViewer.
@@ -50,7 +50,7 @@ class ColoredRectangle:
         """
         half_w = self.width / 2
         half_d = self.depth / 2
-        
+
         # Base polygon (counter-clockwise from bottom-left)
         base_points = [
             (self.x - half_w, self.y - half_d, self.z),  # Bottom-left
@@ -58,7 +58,7 @@ class ColoredRectangle:
             (self.x + half_w, self.y + half_d, self.z),  # Top-right
             (self.x - half_w, self.y + half_d, self.z),  # Top-left
         ]
-        
+
         return (base_points, 0.0)  # Height = 0 for flat rectangle
 
 
@@ -88,32 +88,32 @@ class ColoredSpace(SpaceManager):
                 self._add_rectangle(rect)
 
     # === SpaceManager Contract ===
-    
+
     def register(self, agent: BaseAgent, initial_state: Dict[str, Any]) -> bool:
         """
         Register agent with a colored rectangle.
-        
+
         initial_state expected keys:
         - "rectangle": ColoredRectangle
-        
+
         Returns True if successful.
         """
         rect = initial_state.get("rectangle")
         if not rect or not isinstance(rect, ColoredRectangle):
             return False
-        
+
         if rect.id in self._rect_ids:
             return False  # ID already exists
-        
+
         # Convert to prism format with color/alpha
         base_points, height = rect.to_prism()
         prism: ColoredPrism = (base_points, height, rect.color, rect.alpha)
-        
+
         self._obstacles.append(prism)
         self._rect_ids[rect.id] = len(self._obstacles) - 1
         self._agent_visuals[agent] = rect.id
         return True
-    
+
     def unregister(self, agent: BaseAgent) -> bool:
         """
         Unregister agent and remove its rectangle.
@@ -121,20 +121,20 @@ class ColoredSpace(SpaceManager):
         """
         if agent not in self._agent_visuals:
             return False
-        
+
         rect_id = self._agent_visuals[agent]
         if rect_id in self._rect_ids:
             idx = self._rect_ids[rect_id]
             self._obstacles[idx] = None  # Mark for removal
             del self._rect_ids[rect_id]
-        
+
         del self._agent_visuals[agent]
         return True
-    
+
     def update(self, delta_time: float) -> None:
         """No-op — static visualization."""
         pass
-    
+
     def get_state(self, agent: BaseAgent) -> Dict[str, Any]:
         """
         Get agent's visual state.
@@ -142,21 +142,21 @@ class ColoredSpace(SpaceManager):
         """
         if agent not in self._agent_visuals:
             return {}
-        
+
         rect_id = self._agent_visuals[agent]
         if rect_id not in self._rect_ids:
             return {}
-        
+
         idx = self._rect_ids[rect_id]
         if idx >= len(self._obstacles) or self._obstacles[idx] is None:
             return {}
-        
+
         base_points, height, color, alpha = self._obstacles[idx]
         # Calculate center from base_points
         center_x = sum(p[0] for p in base_points) / 4
         center_y = sum(p[1] for p in base_points) / 4
         center_z = base_points[0][2]
-        
+
         return {
             "rectangle_id": rect_id,
             "position": (center_x, center_y, center_z),
@@ -164,7 +164,7 @@ class ColoredSpace(SpaceManager):
             "alpha": alpha,
             "visible": True
         }
-    
+
     def is_movement_complete(self, agent: BaseAgent) -> bool:
         """Always True — no movement."""
         return True
