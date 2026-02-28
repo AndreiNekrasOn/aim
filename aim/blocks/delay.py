@@ -50,9 +50,6 @@ class DelayBlock(BaseBlock):
 
         del self._scheduled_ejections[agent]
 
-        if self.on_exit is not None:
-            self.on_exit(agent)
-
         self._eject(agent)
 
     @property
